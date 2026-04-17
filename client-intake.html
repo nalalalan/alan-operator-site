@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Alan Operator - Client intake</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <script src="site-config.js"></script>
+  <style>
+    :root {
+      --bg: #f3eee6;
+      --panel: #fbfaf7;
+      --stroke: #d7ccbe;
+      --accent: #b9804c;
+      --accent-dark: #9d6b3f;
+      --text: #171412;
+      --muted: #5a554f;
+      --max: 860px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    a { color: inherit; text-decoration: none; }
+    .shell { width: min(calc(100% - 24px), var(--max)); margin: 0 auto; }
+    .header { border-bottom: 1px solid var(--stroke); background: rgba(243, 238, 230, 0.95); }
+    .header-inner {
+      min-height: 84px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+    }
+    .brand img {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      box-shadow: 0 0 0 1px rgba(185, 128, 76, 0.18);
+    }
+    .wrap { padding: 40px 0 56px; }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--stroke);
+      border-radius: 30px;
+      padding: 28px;
+    }
+    h1 {
+      margin: 0 0 12px;
+      font-size: clamp(38px, 7vw, 60px);
+      line-height: 0.98;
+      letter-spacing: -0.05em;
+    }
+    p {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.5;
+    }
+    label {
+      display: block;
+      margin: 22px 0 8px;
+      font-weight: 800;
+      font-size: 15px;
+    }
+    input {
+      width: 100%;
+      min-height: 58px;
+      border-radius: 18px;
+      border: 1px solid var(--stroke);
+      padding: 0 18px;
+      font-size: 17px;
+      background: white;
+    }
+    .actions {
+      margin-top: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 52px;
+      padding: 0 22px;
+      border-radius: 18px;
+      border: 1px solid var(--stroke);
+      background: white;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+    .btn-primary:hover { background: var(--accent-dark); }
+    .status {
+      margin-top: 14px;
+      color: var(--muted);
+      min-height: 24px;
+      font-size: 15px;
+    }
+    .notice {
+      margin-top: 24px;
+      padding: 16px 18px;
+      border-radius: 18px;
+      background: #eee2d6;
+      border: 1px solid var(--stroke);
+      color: #433c35;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+    @media (max-width: 640px) {
+      .actions { flex-direction: column; }
+      .btn { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="shell header-inner">
+      <a class="brand" href="index.html">
+        <img src="favicon.png" alt="Alan Operator">
+        <span>Alan Operator</span>
+      </a>
+      <a class="btn" href="index.html">Back</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="shell">
+      <section class="card">
+        <h1>Client intake access</h1>
+        <p>This page is for active Alan Operator clients only. Enter your access code to open the live intake flow for your paid packet.</p>
+
+        <label for="access-code">Access code</label>
+        <input id="access-code" type="text" placeholder="Enter your client access code">
+
+        <div class="actions">
+          <button class="btn btn-primary" id="open-intake">Open client intake</button>
+          <a class="btn" id="buy-link" href="#" target="_blank" rel="noopener">Buy the $40 packet</a>
+        </div>
+
+        <div class="status" id="status"></div>
+
+        <div class="notice">
+          If the intake destination is not configured yet in <code>site-config.js</code>, this page will stop here instead of faking a working flow.
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      const config = window.AO_CONFIG || {};
+      const status = document.getElementById('status');
+      const buyLink = document.getElementById('buy-link');
+      const openButton = document.getElementById('open-intake');
+      const input = document.getElementById('access-code');
+
+      buyLink.href = config.STRIPE_URL || '#';
+
+      openButton.addEventListener('click', function () {
+        const code = (input.value || '').trim();
+        if (!code) {
+          status.textContent = 'Enter the access code first.';
+          return;
+        }
+        if (!config.CLIENT_INTAKE_DESTINATION) {
+          status.textContent = 'No live intake destination is configured yet in site-config.js.';
+          return;
+        }
+        const url = new URL(config.CLIENT_INTAKE_DESTINATION, window.location.href);
+        url.searchParams.set('code', code);
+        window.location.href = url.toString();
+      });
+    }());
+  </script>
+</body>
+</html>
