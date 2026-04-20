@@ -544,6 +544,7 @@
       <nav class="nav" aria-label="Primary">
         <div class="nav-links">
           <a href="#sample">Sample</a>
+          <a href="#why-not-ai">Why not just AI?</a>
         </div>
         <a class="btn btn-primary checkout-link" href="#buy">Buy the $40 packet</a>
       </nav>
@@ -555,13 +556,13 @@
       <div class="wrap hero-grid">
         <div>
           <div class="eyebrow">Founder-led paid media agencies</div>
-          <h1 class="hero-title">Stop losing deals after good calls.</h1>
-          <p class="hero-copy">Buy one live packet, get access to the paid intake right after checkout, send rough notes from your next real call, and get back a <strong>client-ready recap</strong>, <strong>clear next steps</strong>, <strong>CRM-ready update text</strong>, and a <strong>follow-up draft</strong> while the lead is still warm.</p>
+          <h1 class="hero-title">Turn one messy client call into a clean recap, next steps, follow-up draft, and CRM update.</h1>
+          <p class="hero-copy">This is <strong>done-for-you post-call execution</strong>, not “AI access.” Buy one live packet, unlock the intake right after checkout, send rough notes from one real call, and get back a <strong>client-ready recap</strong>, <strong>clear next steps</strong>, a <strong>follow-up draft</strong>, and a <strong>CRM-ready update</strong> while the deal is still warm.</p>
           <div class="hero-actions">
             <a class="btn btn-primary checkout-link" href="#buy">Buy the $40 packet</a>
             <a class="btn btn-secondary" href="sample.pdf" target="_blank" rel="noopener">Open sample PDF</a>
           </div>
-          <p class="hero-proofline"><strong>No demo call. No software setup.</strong> Buy first, get intake access automatically, paste notes, get the packet back.</p>
+          <p class="hero-proofline"><strong>Built by Alan Pham / AO Labs.</strong> No demo call. No software setup. Buy first, get intake access automatically, paste notes, get the packet back.</p>
           <div class="chip-row">
             <article class="chip-card">
               <h3>Same-day motion</h3>
@@ -572,8 +573,8 @@
               <p>Stop turning rough notes into manual cleanup work.</p>
             </article>
             <article class="chip-card">
-              <h3>Checkout unlocks intake</h3>
-              <p>Paid clients get the intake link automatically after checkout. The public site stays clean.</p>
+              <h3>Not “AI access”</h3>
+              <p>The value is that the recap, next steps, follow-up, and CRM text actually get finished without someone on your team doing manual cleanup.</p>
             </article>
           </div>
         </div>
@@ -636,6 +637,43 @@
       </div>
     </section>
 
+    <section class="section" id="why-not-ai">
+      <div class="wrap sample-wrap">
+        <div class="sample-copy">
+          <div class="section-kicker">Why this is different</div>
+          <h2 class="section-title">The product is not “we use AI.” The product is that the post-call work gets done.</h2>
+          <p class="section-subtitle">Could someone on the team use ChatGPT? Sure. They could also write the recap themselves, figure out the next steps themselves, draft the follow-up themselves, and update the CRM themselves. The point here is that the work is already finished in a consistent format after a real call.</p>
+          <div class="hero-actions">
+            <a class="btn btn-secondary" href="sample.pdf" target="_blank" rel="noopener">Open sample PDF</a>
+          </div>
+        </div>
+
+        <div class="proof-card">
+          <div class="proof-grid">
+            <div class="proof-block">
+              <h3>Without this</h3>
+              <ul>
+                <li>Good calls die in cleanup</li>
+                <li>Founders rewrite rough notes</li>
+                <li>Follow-up slips</li>
+                <li>CRM updates get skipped</li>
+              </ul>
+            </div>
+            <div class="proof-block">
+              <h3>With this</h3>
+              <ul>
+                <li>Recap is already written</li>
+                <li>Next steps are already clear</li>
+                <li>Follow-up draft is ready</li>
+                <li>CRM-ready update text is ready</li>
+              </ul>
+            </div>
+          </div>
+          <div class="proof-note"><strong>Use case:</strong> founder-led agencies where real sales or discovery calls still matter and the admin drag after the call slows down proposals and follow-up.</div>
+        </div>
+      </div>
+    </section>
+
     <section class="section" id="sample">
       <div class="wrap sample-wrap">
         <div class="sample-copy">
@@ -675,12 +713,14 @@
         <div class="cta-card">
           <div>
             <div class="section-kicker">Final CTA</div>
-            <h2 class="cta-title">Buy one packet. Get the intake link right after checkout.</h2>
-            <p class="cta-subcopy">Fastest way to test this: buy once, send one real call, and use the recap, next steps, and follow-up draft the same day.</p>
+            <h2 class="cta-title">Start with one call, or go straight to the sprint / week / month.</h2>
+            <p class="cta-subcopy">Fastest way to test this is one live packet. If you already know the cleanup pain is real, skip straight to the bigger offer that fits.</p>
           </div>
           <div class="cta-actions">
             <a class="btn btn-primary checkout-link" href="#buy">Buy the $40 packet</a>
-            <a class="btn btn-secondary" href="sample.pdf" target="_blank" rel="noopener">Open sample PDF</a>
+            <a class="btn btn-secondary packet-5-link" href="#buy">5-call sprint</a>
+            <a class="btn btn-secondary weekly-link" href="#buy">Done-for-you week</a>
+            <a class="btn btn-secondary monthly-link" href="#buy">Done-for-you month</a>
           </div>
         </div>
       </div>
@@ -688,7 +728,7 @@
   </main>
 
   <footer class="wrap footer">
-    Alan Operator - done-for-you post-call execution for founder-led paid media agencies.
+    Built by Alan Pham / AO Labs - done-for-you post-call execution for founder-led paid media agencies.
   </footer>
 
   <script src="site-config.js"></script>
@@ -702,26 +742,37 @@
         return '';
       }
 
-      function getCheckoutUrl() {
+      function getConfigValue(key, fallback) {
         return firstNonEmpty(
-          window.AO_CONFIG && window.AO_CONFIG.STRIPE_URL,
-          typeof window.PACKET_CHECKOUT_URL === 'string' ? window.PACKET_CHECKOUT_URL : '',
-          window.SiteConfig && window.SiteConfig.PACKET_CHECKOUT_URL,
-          window.SITE_CONFIG && window.SITE_CONFIG.PACKET_CHECKOUT_URL,
-          'https://buy.stripe.com/bJeaEZb4mf6de64dSi2Nq02'
+          window.AO_CONFIG && window.AO_CONFIG[key],
+          typeof window[key] === 'string' ? window[key] : '',
+          window.SiteConfig && window.SiteConfig[key],
+          window.SITE_CONFIG && window.SITE_CONFIG[key],
+          fallback || ''
         );
       }
 
-      var checkoutUrl = getCheckoutUrl();
-      var links = document.querySelectorAll('.checkout-link');
+      var checkoutUrl = getConfigValue('PACKET_CHECKOUT_URL', 'https://buy.stripe.com/bJeaEZb4mf6de64dSi2Nq02');
+      var packet5Url = getConfigValue('PACKET_5_PACK_URL', checkoutUrl);
+      var weeklyUrl = getConfigValue('WEEKLY_SPRINT_URL', packet5Url);
+      var monthlyUrl = getConfigValue('MONTHLY_AUTOPILOT_URL', weeklyUrl);
 
-      links.forEach(function (link) {
-        link.href = checkoutUrl;
-        link.target = '_blank';
-        link.rel = 'noopener';
-        link.classList.remove('disabled');
-        link.removeAttribute('aria-disabled');
-        link.removeAttribute('title');
+      [
+        ['.checkout-link', checkoutUrl],
+        ['.packet-5-link', packet5Url],
+        ['.weekly-link', weeklyUrl],
+        ['.monthly-link', monthlyUrl]
+      ].forEach(function (entry) {
+        var selector = entry[0];
+        var href = entry[1];
+        document.querySelectorAll(selector).forEach(function (link) {
+          link.href = href;
+          link.target = '_blank';
+          link.rel = 'noopener';
+          link.classList.remove('disabled');
+          link.removeAttribute('aria-disabled');
+          link.removeAttribute('title');
+        });
       });
     })();
   </script>
