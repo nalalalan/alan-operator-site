@@ -635,7 +635,235 @@
       .preview-shell { padding: 16px; border-radius: 28px; }
       .preview-frame { padding: 12px; border-radius: 20px; }
     }
-  </style>
+  
+
+/* AO_RELAY_MOBILE_PATCH_V1 */
+@media (max-width: 760px) {
+  html, body {
+    overflow-x: hidden !important;
+  }
+
+  body {
+    font-size: 16px !important;
+  }
+
+  .site-header,
+  header,
+  .header {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 50 !important;
+    min-height: unset !important;
+    padding: 10px 14px !important;
+    backdrop-filter: blur(14px) !important;
+  }
+
+  .nav,
+  nav {
+    gap: 14px !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+  }
+
+  .brand,
+  .logo-wrap {
+    gap: 9px !important;
+  }
+
+  .brand-mark,
+  .logo,
+  .mark {
+    width: 46px !important;
+    height: 46px !important;
+    min-width: 46px !important;
+    border-radius: 14px !important;
+  }
+
+  .brand-name {
+    font-size: 21px !important;
+    line-height: 1 !important;
+  }
+
+  .brand-sub {
+    font-size: 11px !important;
+    letter-spacing: .12em !important;
+  }
+
+  .nav-links,
+  .desktop-nav {
+    display: flex !important;
+    gap: 16px !important;
+    order: 3 !important;
+    width: 100% !important;
+    font-size: 15px !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    padding: 2px 0 0 !important;
+  }
+
+  .nav-links a,
+  .desktop-nav a {
+    font-size: 15px !important;
+  }
+
+  .nav-cta,
+  .header-cta,
+  .top-cta {
+    margin-left: auto !important;
+    padding: 11px 14px !important;
+    border-radius: 18px !important;
+    font-size: 14px !important;
+    white-space: nowrap !important;
+    max-width: 46vw !important;
+  }
+
+  main,
+  .main,
+  .page {
+    padding-top: 22px !important;
+  }
+
+  .hero,
+  .hero-section {
+    padding: 28px 20px 22px !important;
+    gap: 20px !important;
+  }
+
+  .eyebrow,
+  .pill,
+  .hero-eyebrow {
+    font-size: 13px !important;
+    line-height: 1.25 !important;
+    padding: 10px 14px !important;
+    border-radius: 999px !important;
+    text-align: center !important;
+  }
+
+  .hero-title,
+  h1 {
+    font-size: clamp(46px, 15vw, 70px) !important;
+    line-height: .91 !important;
+    letter-spacing: -0.065em !important;
+    max-width: 100% !important;
+    overflow-wrap: normal !important;
+  }
+
+  .hero-copy,
+  .hero p,
+  .lead {
+    font-size: 21px !important;
+    line-height: 1.35 !important;
+    max-width: 100% !important;
+  }
+
+  .hero-actions,
+  .cta-row,
+  .actions {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+    width: 100% !important;
+  }
+
+  .hero-actions a,
+  .cta-row a,
+  .actions a,
+  .button,
+  .btn,
+  .primary-button {
+    width: 100% !important;
+    min-height: 58px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 22px !important;
+    font-size: 18px !important;
+    text-align: center !important;
+  }
+
+  .sample,
+  .sample-card,
+  .packet-preview,
+  .preview-card {
+    margin-top: 18px !important;
+    padding: 18px !important;
+    border-radius: 28px !important;
+  }
+
+  .sample img,
+  .packet-preview img,
+  .preview-card img,
+  img {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  .section,
+  section {
+    padding: 34px 20px !important;
+  }
+
+  .section-title,
+  h2 {
+    font-size: clamp(34px, 11vw, 52px) !important;
+    line-height: .98 !important;
+    letter-spacing: -0.045em !important;
+  }
+
+  .section-copy,
+  section p {
+    font-size: 19px !important;
+    line-height: 1.42 !important;
+  }
+
+  .founder,
+  .person-card,
+  .bio-card {
+    padding: 22px !important;
+    border-radius: 28px !important;
+  }
+
+  .founder img,
+  .person-card img,
+  .bio-card img {
+    width: 100% !important;
+    max-height: 360px !important;
+    object-fit: cover !important;
+    border-radius: 24px !important;
+  }
+
+  .cards,
+  .grid,
+  .features,
+  .steps {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .hero-title,
+  h1 {
+    font-size: clamp(42px, 14vw, 58px) !important;
+  }
+
+  .hero-copy,
+  .hero p,
+  .lead {
+    font-size: 19px !important;
+  }
+
+  .nav-cta,
+  .header-cta,
+  .top-cta {
+    max-width: 44vw !important;
+    font-size: 13px !important;
+    padding: 10px 12px !important;
+  }
+}
+/* AO_RELAY_MOBILE_PATCH_V1_END */
+
+</style>
 </head>
 <body>
   <header class="topbar">
@@ -650,7 +878,7 @@
       <nav class="nav" aria-label="Primary">
         <div class="nav-links">
           <a href="#sample">Sample</a>
-          <a href="#why-not-ai">Why pay if ChatGPT is free?</a>
+          <a href="#why-not-ai">Why not just ChatGPT?</a>
         </div>
         <a class="btn btn-primary checkout-link" href="#buy">Start the $40 relay</a>
       </nav>
@@ -715,7 +943,7 @@
     <section class="section" id="why-not-ai">
       <div class="wrap why-wrap">
         <div>
-          <div class="section-kicker">Why pay if ChatGPT is free?</div>
+          <div class="section-kicker">Why not just ChatGPT?</div>
           <h2 class="section-title">Because “we have ChatGPT” and “the work got done” are not the same thing.</h2>
           <p class="section-subtitle">A model can generate text. It does not decide, by itself, what matters from messy notes, clean the output into something client-safe, draft the follow-up, update the CRM, and make sure any of it actually gets sent. That still lands on someone at your company.</p>
         </div>
