@@ -4,12 +4,138 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Relay by AO Labs</title>
+  <meta name="description" content="Relay turns rough call notes into client-ready follow-through.">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <style>
+    :root{
+      --bg:#efebe2; --card:#fffaf4; --ink:#151313; --muted:#6f625b;
+      --line:#ded3c6; --accent:#c1844f; --soft:#f7efe8;
+      --shadow:0 28px 80px rgba(70,48,30,.14);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    header{position:sticky;top:0;z-index:10;background:rgba(239,235,226,.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
+    .nav{max-width:1180px;margin:auto;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+    .brand{display:flex;align-items:center;gap:12px}
+    .mark{width:48px;height:48px;border-radius:14px;overflow:hidden;box-shadow:0 10px 30px rgba(120,80,40,.14)}
+    .mark svg{width:100%;height:100%;display:block}
+    .brand strong{font-size:24px;letter-spacing:-.04em}.brand span{display:block;font-size:11px;font-weight:900;letter-spacing:.16em;color:#6f625b}
+    .links{display:flex;align-items:center;gap:28px}.links a{color:#5d554f;text-decoration:none;font-size:16px}.btn{background:var(--accent);color:white!important;padding:16px 26px;border-radius:18px;font-weight:900;text-decoration:none;box-shadow:0 18px 50px rgba(193,132,79,.25)}
+    main{max-width:1180px;margin:auto;padding:42px 24px 56px}
+    .hero{display:grid;grid-template-columns:1.05fr .95fr;gap:42px;align-items:center}
+    .pill{display:inline-block;border:1px solid #dec7b2;background:#f7efe8;color:#a66c3f;border-radius:999px;padding:10px 18px;font-size:13px;font-weight:950;letter-spacing:.02em;margin-bottom:24px}
+    h1{font-size:clamp(52px,7vw,88px);line-height:.92;letter-spacing:-.075em;margin:0 0 22px}
+    .lead{font-size:22px;line-height:1.35;color:#5f554f;max-width:700px;margin:0 0 28px}
+    .actions{display:flex;gap:14px;flex-wrap:wrap}.secondary{background:#fffaf4;color:#151313!important;border:1px solid var(--line);padding:16px 26px;border-radius:18px;font-weight:900;text-decoration:none}
+    .sample{background:var(--card);border:1px solid var(--line);border-radius:32px;padding:22px;box-shadow:var(--shadow)}
+    .sample-head{display:flex;justify-content:space-between;color:#a66c3f;font-weight:950;text-transform:uppercase;letter-spacing:.06em;margin-bottom:18px}
+    .packet{background:#f2ede4;border:1px solid #d8cbbb;border-radius:24px;padding:34px}
+    .packet h3{font-size:30px;letter-spacing:-.04em;margin:0 0 8px}.packet h4{font-size:24px;color:#a66c3f;margin:18px 0 4px}
+    .mini{font-size:14px;color:#5f554f;line-height:1.45}.chips{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}.chip{border:1px solid #d8cbbb;border-radius:999px;padding:7px 12px;background:#fffaf4;font-size:12px}
+    section{margin-top:56px}.card{background:var(--card);border:1px solid var(--line);border-radius:30px;padding:34px;box-shadow:var(--shadow)}
+    .split{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+    h2{font-size:clamp(38px,5vw,68px);line-height:.95;letter-spacing:-.07em;margin:0 0 18px}
+    .compare{display:grid;grid-template-columns:1fr 1fr;gap:24px}.compare h3{font-size:22px;margin:0 0 12px}.compare li{margin:0 0 12px;color:#3f3833;font-size:17px;line-height:1.35}
+    .person{display:grid;grid-template-columns:220px 1fr;gap:34px;align-items:start}.person img{width:220px;border-radius:24px;box-shadow:0 20px 60px rgba(60,40,30,.12)}
+    .person h2{font-size:56px}.person p{font-size:20px;color:#5f554f;line-height:1.5}
+    footer{padding:32px 24px;color:#756b64;max-width:1180px;margin:auto}
+    @media(max-width:900px){.hero,.split,.compare,.person{grid-template-columns:1fr}.links{display:none}main{padding-top:28px}h1{font-size:58px}.person img{width:160px}}
+  </style>
 </head>
 <body>
-  <h1>Relay</h1>
-  <p>Done-for-you post-call execution.</p>
-  <p>You send rough notes. Relay returns the recap, next steps, follow-up draft, and CRM-ready update.</p>
-  <a href="https://buy.stripe.com/bJeaEZb4mf6de64dSi2Nq02">Start the $40 relay</a>
+  <header>
+    <div class="nav">
+      <a class="brand" href="/">
+        <div class="mark">
+          <svg viewBox="0 0 64 64" aria-label="Relay logo">
+            <rect width="64" height="64" rx="18" fill="#c88452"/>
+            <rect x="15" y="15" width="34" height="34" rx="9" fill="#fff8f2"/>
+            <path d="M24 38 C30 29, 34 35, 41 25" fill="none" stroke="#c88452" stroke-width="5" stroke-linecap="round"/>
+            <path d="M36 24 H42 V30" fill="none" stroke="#c88452" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="23" cy="39" r="4" fill="#c88452"/>
+          </svg>
+        </div>
+        <div><strong>Relay</strong><span>BY AO LABS</span></div>
+      </a>
+      <nav class="links">
+        <a href="#sample">Sample</a>
+        <a href="#why">Why not just ChatGPT?</a>
+        <a class="btn" href="https://buy.stripe.com/bJeaEZb4mf6de64dSi2Nq02">Start the $40 relay</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <div class="pill">Post-call handoff relay for founder-led agencies</div>
+        <h1>You open ChatGPT. You paste notes. You never finish it. Relay finishes it.</h1>
+        <p class="lead">Drop rough call notes. Get the recap, next steps, follow-up draft, and CRM-ready update done for you.</p>
+        <div class="actions">
+          <a class="btn" href="https://buy.stripe.com/bJeaEZb4mf6de64dSi2Nq02">Start the $40 relay</a>
+          <a class="secondary" href="#sample">Open sample PDF</a>
+        </div>
+      </div>
+
+      <div class="sample" id="sample">
+        <div class="sample-head"><span>What comes back after a call</span><span>Same day</span></div>
+        <div class="packet">
+          <h3>Relay</h3>
+          <div class="chip">Sample packet</div>
+          <h4>Post-Call Follow-Up Packet</h4>
+          <p class="mini">Northline Growth x Riverstone Dental Group</p>
+          <div class="chips">
+            <div class="chip">Call type: discovery</div>
+            <div class="chip">Lead source: paid search</div>
+            <div class="chip">Status: warm</div>
+          </div>
+          <h4>Client-ready recap email</h4>
+          <p class="mini">Thanks again for today's call. The immediate priority is tightening lead quality and getting same-day follow-up out after inbound consult requests.</p>
+          <h4>Next steps</h4>
+          <p class="mini">Audit scope, campaign breakdown, follow-up draft, CRM-ready update, and open questions returned in one clean packet.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="why" class="split">
+      <div>
+        <div class="pill">Why not just ChatGPT?</div>
+        <h2>Because having ChatGPT and getting the work done are not the same thing.</h2>
+        <p class="lead">A model can generate text. Relay owns the messy after-call work and gets the usable follow-through finished.</p>
+      </div>
+      <div class="card compare">
+        <div>
+          <h3>Doing it yourself</h3>
+          <ul>
+            <li>You still decide what matters.</li>
+            <li>You still clean messy notes.</li>
+            <li>You still turn it into follow-up and CRM updates.</li>
+            <li>You still make sure it gets sent.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Using Relay</h3>
+          <ul>
+            <li>You send rough notes from one real call.</li>
+            <li>The recap comes back finished.</li>
+            <li>The follow-up draft comes back ready.</li>
+            <li>The ugly work is off your team's plate.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="card person">
+      <img src="alan.jpg" alt="Alan Pham">
+      <div>
+        <div class="pill">Built by a real person</div>
+        <h2>Alan Pham</h2>
+        <p>Mechanical engineer, robotics PhD researcher at WPI, NASA L'SPACE soft robotics researcher, and violinist.</p>
+        <p>I built Relay because good calls should not quietly die in messy notes. Relay makes sure the work after a strong call actually gets finished.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>Relay by AO Labs — done-for-you post-call execution.</footer>
 </body>
 </html>
