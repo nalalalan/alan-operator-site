@@ -1,141 +1,508 @@
-﻿<!doctype html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Relay by AO Labs</title>
-  <meta name="description" content="Relay turns rough call notes into client-ready follow-through.">
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Relay Live</title>
+  <meta name="theme-color" content="#0b0d12" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png" />
+  <link rel="icon" type="image/x-icon" href="favicon.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
   <style>
     :root{
-      --bg:#efebe2; --card:#fffaf4; --ink:#151313; --muted:#6f625b;
-      --line:#ded3c6; --accent:#c1844f; --soft:#f7efe8;
-      --shadow:0 28px 80px rgba(70,48,30,.14);
+      --bg:#0b0d12;
+      --panel:#10141b;
+      --panel-2:#131923;
+      --line:#202736;
+      --text:#f5f7fb;
+      --muted:#96a0b2;
+      --green:#00c805;
+      --green-2:#3fe774;
+      --red:#ff5b6b;
+      --yellow:#f5c04e;
+      --blue:#64b5ff;
+      --shadow:0 18px 48px rgba(0,0,0,.35);
     }
     *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-    header{position:sticky;top:0;z-index:10;background:rgba(239,235,226,.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
-    .nav{max-width:1180px;margin:auto;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+    html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow:auto}
+    body{padding:12px}
+    button{font:inherit}
+    .app{min-height:calc(100dvh - 24px);display:grid;grid-template-rows:auto auto auto minmax(0,1fr);gap:10px}
+    .panel,.card,.hero{background:linear-gradient(180deg,var(--panel) 0%, var(--panel-2) 100%);border:1px solid var(--line);box-shadow:var(--shadow)}
+    .topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
     .brand{display:flex;align-items:center;gap:12px}
-    .mark{width:48px;height:48px;border-radius:14px;overflow:hidden;box-shadow:0 10px 30px rgba(120,80,40,.14)}
-    .mark svg{width:100%;height:100%;display:block}
-    .brand strong{font-size:24px;letter-spacing:-.04em}.brand span{display:block;font-size:11px;font-weight:900;letter-spacing:.16em;color:#6f625b}
-    .links{display:flex;align-items:center;gap:28px}.links a{color:#5d554f;text-decoration:none;font-size:16px}.btn{background:var(--accent);color:white!important;padding:16px 26px;border-radius:18px;font-weight:900;text-decoration:none;box-shadow:0 18px 50px rgba(193,132,79,.25)}
-    main{max-width:1180px;margin:auto;padding:42px 24px 56px}
-    .hero{display:grid;grid-template-columns:1.05fr .95fr;gap:42px;align-items:center}
-    .pill{display:inline-block;border:1px solid #dec7b2;background:#f7efe8;color:#a66c3f;border-radius:999px;padding:10px 18px;font-size:13px;font-weight:950;letter-spacing:.02em;margin-bottom:24px}
-    h1{font-size:clamp(52px,7vw,88px);line-height:.92;letter-spacing:-.075em;margin:0 0 22px}
-    .lead{font-size:22px;line-height:1.35;color:#5f554f;max-width:700px;margin:0 0 28px}
-    .actions{display:flex;gap:14px;flex-wrap:wrap}.secondary{background:#fffaf4;color:#151313!important;border:1px solid var(--line);padding:16px 26px;border-radius:18px;font-weight:900;text-decoration:none}
-    .sample{background:var(--card);border:1px solid var(--line);border-radius:32px;padding:22px;box-shadow:var(--shadow)}
-    .sample-head{display:flex;justify-content:space-between;color:#a66c3f;font-weight:950;text-transform:uppercase;letter-spacing:.06em;margin-bottom:18px}
-    .packet{background:#f2ede4;border:1px solid #d8cbbb;border-radius:24px;padding:34px}
-    .packet h3{font-size:30px;letter-spacing:-.04em;margin:0 0 8px}.packet h4{font-size:24px;color:#a66c3f;margin:18px 0 4px}
-    .mini{font-size:14px;color:#5f554f;line-height:1.45}.chips{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}.chip{border:1px solid #d8cbbb;border-radius:999px;padding:7px 12px;background:#fffaf4;font-size:12px}
-    section{margin-top:56px}.card{background:var(--card);border:1px solid var(--line);border-radius:30px;padding:34px;box-shadow:var(--shadow)}
-    .split{display:grid;grid-template-columns:1fr 1fr;gap:24px}
-    h2{font-size:clamp(38px,5vw,68px);line-height:.95;letter-spacing:-.07em;margin:0 0 18px}
-    .compare{display:grid;grid-template-columns:1fr 1fr;gap:24px}.compare h3{font-size:22px;margin:0 0 12px}.compare li{margin:0 0 12px;color:#3f3833;font-size:17px;line-height:1.35}
-    .person{display:grid;grid-template-columns:220px 1fr;gap:34px;align-items:start}.person img{width:220px;border-radius:24px;box-shadow:0 20px 60px rgba(60,40,30,.12)}
-    .person h2{font-size:56px}.person p{font-size:20px;color:#5f554f;line-height:1.5}
-    footer{padding:32px 24px;color:#756b64;max-width:1180px;margin:auto}
-    @media(max-width:900px){.hero,.split,.compare,.person{grid-template-columns:1fr}.links{display:none}main{padding-top:28px}h1{font-size:58px}.person img{width:160px}}
+    .logo{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:rgba(0,200,5,.12);border:1px solid rgba(0,200,5,.18);color:var(--green-2);font-weight:900;letter-spacing:-.04em}
+    .brand h1{margin:0;font-size:24px;line-height:1;font-weight:850;letter-spacing:-.05em}
+    .brand p{margin:5px 0 0;color:var(--muted);font-size:13px}
+    .actions{display:flex;gap:10px;flex-wrap:wrap}
+    .btn{border:none;border-radius:14px;padding:10px 14px;font-size:13px;font-weight:800;cursor:pointer}
+    .btn-primary{background:rgba(0,200,5,.14);color:var(--green-2);border:1px solid rgba(0,200,5,.18)}
+    .btn-ghost{background:rgba(255,255,255,.02);color:var(--text);border:1px solid var(--line)}
+
+    .hero{border-radius:24px;padding:14px 16px;display:grid;grid-template-columns:1.3fr .9fr;gap:10px;align-items:stretch}
+    .hero-left{display:grid;align-content:center;gap:8px;min-width:0}
+    .eyebrow{font-size:11px;color:var(--muted);letter-spacing:.07em;text-transform:uppercase}
+    .hero-row{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+    .hero-value{font-size:48px;line-height:.9;font-weight:900;letter-spacing:-.07em;font-variant-numeric:tabular-nums}
+    .hero-status{display:flex;gap:8px;flex-wrap:wrap}
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:9px 11px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.02);color:var(--muted);font-size:12px;font-weight:700;max-width:100%}
+    .dot{width:8px;height:8px;border-radius:999px;background:var(--green);box-shadow:0 0 0 4px rgba(0,200,5,.12)}
+    .statusline{font-size:12px;line-height:1.45;color:var(--muted)}
+    .hero-right{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;min-width:0}
+    .hero-mini{padding:11px 12px;border-radius:18px;border:1px solid var(--line);background:rgba(255,255,255,.02);min-width:0}
+    .hero-mini .k{font-size:10px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px}
+    .hero-mini .v{font-size:20px;font-weight:850;letter-spacing:-.04em;font-variant-numeric:tabular-nums;line-height:1.05;word-break:break-word}
+    .hero-mini .s{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.35}
+
+    .focus-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+    .card{border-radius:20px;padding:14px 14px 12px;display:grid;gap:8px;min-height:124px;min-width:0}
+    .card .label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+    .card .value{font-size:38px;line-height:.95;font-weight:900;letter-spacing:-.06em;font-variant-numeric:tabular-nums;word-break:break-word}
+    .card .sub{font-size:13px;color:var(--muted);line-height:1.35}
+    .card .foot{margin-top:auto;font-size:12px;color:var(--muted);line-height:1.35;overflow-wrap:anywhere}
+    .accent-green{box-shadow:var(--shadow), inset 0 0 0 1px rgba(0,200,5,.12)}
+    .accent-blue{box-shadow:var(--shadow), inset 0 0 0 1px rgba(100,181,255,.12)}
+    .accent-yellow{box-shadow:var(--shadow), inset 0 0 0 1px rgba(245,192,78,.12)}
+    .accent-red{box-shadow:var(--shadow), inset 0 0 0 1px rgba(255,91,107,.12)}
+
+    .bottom-grid{min-height:0;display:grid;grid-template-columns:1fr 1fr .9fr;gap:10px}
+    .panel{border-radius:20px;padding:12px;display:grid;grid-template-rows:auto minmax(0,1fr);min-height:0}
+    .panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+    .panel h3{margin:0;font-size:15px;letter-spacing:-.03em}
+    .tiny{font-size:11px;color:var(--muted)}
+    .panel-body{min-height:0;overflow:auto}
+    .activity-list{display:grid;gap:8px}
+    .activity-item{padding:10px 11px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.02)}
+    .activity-top{display:flex;justify-content:space-between;gap:10px;font-size:11px;color:var(--muted);margin-bottom:4px}
+    .activity-title{font-size:13px;font-weight:800;letter-spacing:-.02em;margin-bottom:4px}
+    .activity-sub{font-size:11px;color:var(--muted);line-height:1.3;margin-bottom:5px;word-break:break-word}
+    .activity-preview{font-size:12px;line-height:1.35;color:var(--text);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .stack{display:grid;gap:8px}
+    .mini-row{display:flex;justify-content:space-between;gap:10px;padding:9px 11px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.02);font-size:12px}
+    .mini-row .left{color:var(--muted)}
+    .mini-row div:last-child{overflow-wrap:anywhere;text-align:right}
+    .bars{display:grid;gap:8px}
+    .barrow{display:grid;gap:5px}
+    .barname{display:flex;justify-content:space-between;gap:8px;font-size:12px}
+    .barname span:first-child{color:var(--muted);overflow-wrap:anywhere}
+    .track{height:8px;border-radius:999px;background:#0d1117;border:1px solid rgba(255,255,255,.05);overflow:hidden}
+    .fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--green),var(--green-2))}
+    .good{color:var(--green-2)}
+    .bad{color:var(--red)}
+    .warn{color:var(--yellow)}
+
+    @media (max-height: 900px){
+      body{padding:10px}
+      .app{gap:8px;min-height:calc(100dvh - 20px)}
+      .hero{padding:12px 14px}
+      .hero-value{font-size:42px}
+      .hero-mini .v{font-size:18px}
+      .card{min-height:112px;padding:12px 12px 10px}
+      .card .value{font-size:34px}
+      .card .sub,.card .foot{font-size:11px}
+      .panel{padding:10px}
+      .panel h3{font-size:14px}
+      .activity-item{padding:9px 10px}
+      .mini-row{padding:8px 10px;font-size:11px}
+    }
+
+    @media (max-width:1360px){
+      .focus-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+      .bottom-grid{grid-template-columns:1fr}
+      .hero{grid-template-columns:1fr}
+    }
+    @media (max-width:880px){
+      .focus-grid{grid-template-columns:1fr 1fr}
+      .hero-right{grid-template-columns:1fr 1fr}
+      .topbar{flex-direction:column}
+    }
+    @media (max-width:620px){
+      .focus-grid{grid-template-columns:1fr}
+      .hero-right{grid-template-columns:1fr}
+      body{padding:10px}
+      .hero-value{font-size:38px}
+      .card .value{font-size:32px}
+    }
   </style>
 </head>
 <body>
-  <header>
-    <div class="nav">
-      <a class="brand" href="/">
-        <div class="mark">
-          <svg viewBox="0 0 64 64" aria-label="Relay logo">
-            <rect width="64" height="64" rx="18" fill="#c88452"/>
-            <rect x="15" y="15" width="34" height="34" rx="9" fill="#fff8f2"/>
-            <path d="M24 38 C30 29, 34 35, 41 25" fill="none" stroke="#c88452" stroke-width="5" stroke-linecap="round"/>
-            <path d="M36 24 H42 V30" fill="none" stroke="#c88452" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-            <circle cx="23" cy="39" r="4" fill="#c88452"/>
-          </svg>
+  <div class="app">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo">AO</div>
+        <div>
+          <h1>Relay Live</h1>
+          <p>One-screen view of the only signals that matter.</p>
         </div>
-        <div><strong>Relay</strong><span>BY AO LABS</span></div>
-      </a>
-      <nav class="links">
-        <a href="#sample">Sample</a>
-        <a href="#why">Why not just ChatGPT?</a>
-        <a class="btn" href="https://buy.stripe.com/bJeaEZb4mf6de64dSi2Nq02">Start the $40 relay</a>
-      </nav>
+      </div>
+      <div class="actions">
+        <button class="btn btn-ghost" id="refreshBtn">Refresh now</button>
+        <button class="btn btn-primary" id="copyBtn">Copy status</button>
+      </div>
     </div>
-  </header>
 
-  <main>
     <section class="hero">
-      <div>
-        <div class="pill">Post-call handoff relay for founder-led agencies</div>
-        <h1>You open ChatGPT. You paste notes. You never finish it. Relay finishes it.</h1>
-        <p class="lead">Drop rough call notes. Get the recap, next steps, follow-up draft, and CRM-ready update done for you.</p>
-        <div class="actions">
-          <a class="btn" href="https://buy.stripe.com/bJeaEZb4mf6de64dSi2Nq02">Start the $40 relay</a>
-          <a class="secondary" href="#sample">Open sample PDF</a>
-        </div>
-      </div>
-
-      <div class="sample" id="sample">
-        <div class="sample-head"><span>What comes back after a call</span><span>Same day</span></div>
-        <div class="packet">
-          <h3>Relay</h3>
-          <div class="chip">Sample packet</div>
-          <h4>Post-Call Follow-Up Packet</h4>
-          <p class="mini">Northline Growth x Riverstone Dental Group</p>
-          <div class="chips">
-            <div class="chip">Call type: discovery</div>
-            <div class="chip">Lead source: paid search</div>
-            <div class="chip">Status: warm</div>
+      <div class="hero-left">
+        <div class="eyebrow">Main score</div>
+        <div class="hero-row">
+          <div class="hero-value" id="heroValue">$0.00</div>
+          <div class="hero-status">
+            <div class="pill"><span class="dot"></span><span id="liveState">connecting</span></div>
+            <div class="pill" id="marketPill">Window --</div>
+            <div class="pill" id="lastUpdatedPill">Last update --:--:--</div>
           </div>
-          <h4>Client-ready recap email</h4>
-          <p class="mini">Thanks again for today's call. The immediate priority is tightening lead quality and getting same-day follow-up out after inbound consult requests.</p>
-          <h4>Next steps</h4>
-          <p class="mini">Audit scope, campaign breakdown, follow-up draft, CRM-ready update, and open questions returned in one clean packet.</p>
+        </div>
+        <div class="statusline" id="statusLine">Bootingâ€¦</div>
+      </div>
+      <div class="hero-right">
+        <div class="hero-mini">
+          <div class="k">Reply mailbox</div>
+          <div class="v" id="replyMailbox">--</div>
+          <div class="s" id="replyToMeta">reply-to route</div>
+        </div>
+        <div class="hero-mini">
+          <div class="k">Sender split</div>
+          <div class="v" id="senderSummaryTop">--</div>
+          <div class="s">today's actual sender usage</div>
+        </div>
+        <div class="hero-mini">
+          <div class="k">Money today</div>
+          <div class="v" id="moneyTodayMini">$0.00</div>
+          <div class="s" id="moneyTodayMiniSub">0 payments</div>
+        </div>
+        <div class="hero-mini">
+          <div class="k">Next likely tick</div>
+          <div class="v" id="nextTick">--:--</div>
+          <div class="s" id="nextTickSub">waiting</div>
         </div>
       </div>
     </section>
 
-    <section id="why" class="split">
-      <div>
-        <div class="pill">Why not just ChatGPT?</div>
-        <h2>Because having ChatGPT and getting the work done are not the same thing.</h2>
-        <p class="lead">A model can generate text. Relay owns the messy after-call work and gets the usable follow-through finished.</p>
+    <section class="focus-grid">
+      <div class="card accent-green">
+        <div class="label">1. Replies</div>
+        <div class="value" id="repliesToday">0</div>
+        <div class="sub" id="repliesSub">today</div>
+        <div class="foot" id="repliesFoot">watch this first</div>
       </div>
-      <div class="card compare">
-        <div>
-          <h3>Doing it yourself</h3>
-          <ul>
-            <li>You still decide what matters.</li>
-            <li>You still clean messy notes.</li>
-            <li>You still turn it into follow-up and CRM updates.</li>
-            <li>You still make sure it gets sent.</li>
-          </ul>
-        </div>
-        <div>
-          <h3>Using Relay</h3>
-          <ul>
-            <li>You send rough notes from one real call.</li>
-            <li>The recap comes back finished.</li>
-            <li>The follow-up draft comes back ready.</li>
-            <li>The ugly work is off your team's plate.</li>
-          </ul>
-        </div>
+      <div class="card accent-blue">
+        <div class="label">2. Money</div>
+        <div class="value" id="moneyToday">$0.00</div>
+        <div class="sub" id="moneySub">today Â· 0 payments</div>
+        <div class="foot" id="moneyFoot">week $0.00 Â· month $0.00</div>
+      </div>
+      <div class="card accent-green">
+        <div class="label">3. Sends</div>
+        <div class="value" id="sentToday">0</div>
+        <div class="sub" id="sentSub">0 / 0 cap</div>
+        <div class="foot" id="sentFoot">sender split --</div>
+      </div>
+      <div class="card accent-yellow">
+        <div class="label">4. Queue pressure</div>
+        <div class="value" id="dueNow">0</div>
+        <div class="sub" id="queueSub">due now</div>
+        <div class="foot" id="queueFoot">0 in sequence</div>
+      </div>
+      <div class="card accent-red">
+        <div class="label">5. Window / cap</div>
+        <div class="value" id="windowValue">--</div>
+        <div class="sub" id="windowSub">window --</div>
+        <div class="foot" id="windowFoot">cap --</div>
       </div>
     </section>
 
-    <section class="card person">
-      <img src="alan.jpg" alt="Alan Pham">
-      <div>
-        <div class="pill">Built by a real person</div>
-        <h2>Alan Pham</h2>
-        <p>Mechanical engineer, robotics PhD researcher at WPI, NASA L'SPACE soft robotics researcher, and violinist.</p>
-        <p>I built Relay because good calls should not quietly die in messy notes. Relay makes sure the work after a strong call actually gets finished.</p>
+    <section class="bottom-grid">
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Recent sent emails</h3>
+          <div class="tiny">latest outbound</div>
+        </div>
+        <div class="panel-body">
+          <div class="activity-list" id="recentSentList"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Recent replies</h3>
+          <div class="tiny">latest inbound</div>
+        </div>
+        <div class="panel-body">
+          <div class="activity-list" id="recentReplyList"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Quick details</h3>
+          <div class="tiny">secondary info</div>
+        </div>
+        <div class="panel-body stack">
+          <div class="mini-row"><div class="left">Reply-To</div><div id="replyToEmail">--</div></div>
+          <div class="mini-row"><div class="left">Provider</div><div id="outboundProvider">--</div></div>
+          <div class="mini-row"><div class="left">Configured mailboxes</div><div id="mailboxes">0</div></div>
+          <div class="mini-row"><div class="left">Per-mailbox cap</div><div id="perMailboxCap">0</div></div>
+          <div class="mini-row"><div class="left">Week money</div><div id="moneyWeek">$0.00</div></div>
+          <div class="mini-row"><div class="left">Month money</div><div id="moneyMonth">$0.00</div></div>
+          <div class="bars" id="senderBars"></div>
+        </div>
       </div>
     </section>
-  </main>
+  </div>
 
-  <footer>Relay by AO Labs — done-for-you post-call execution.</footer>
+  <script>
+    const STATUS_URL = "https://alan-operator-backend-production.up.railway.app/custom-outreach/status";
+    const MONEY_URL  = "https://alan-operator-backend-production.up.railway.app/ops/money-summary";
+    let lastPayload = null;
+
+    function $(id){ return document.getElementById(id); }
+    function fmtMoney(v){ return `$${Number(v || 0).toFixed(2)}`; }
+    function fmtTime(date){ return date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'}); }
+    function fmtShort(date){ return date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
+
+    function nextBoundary(minutes, fromDate = new Date()){
+      const d = new Date(fromDate);
+      d.setSeconds(0, 0);
+      let add = minutes - (fromDate.getMinutes() % minutes);
+      if (add === minutes && fromDate.getSeconds() === 0) add = 0;
+      d.setMinutes(fromDate.getMinutes() + add);
+      return d;
+    }
+
+    function getWindowFromStatus(status){
+      if (status.send_window_start_local && status.send_window_end_local) {
+        const start = new Date(status.send_window_start_local);
+        const end = new Date(status.send_window_end_local);
+        const tz = status.send_window_timezone || "America/New_York";
+        const isOpen = Boolean(status.send_window_is_open);
+        return { start, end, tz, isOpen };
+      }
+      const now = new Date();
+      const start = new Date(now); start.setHours(9,30,0,0);
+      const end = new Date(now); end.setHours(17,0,0,0);
+      return { start, end, tz: "America/New_York", isOpen: now >= start && now < end };
+    }
+
+    function addDays(date, days){
+      const d = new Date(date);
+      d.setDate(d.getDate() + days);
+      return d;
+    }
+
+    function sessionState(status){
+      const now = new Date();
+      const sent = Number(status.sent_today || 0);
+      const cap = Number(status.daily_send_cap || 0);
+      const due = Number(status.due_now_count || 0);
+      const win = getWindowFromStatus(status);
+      let nextOpen = win.start;
+      let nextClose = win.end;
+
+      if (now >= win.end) {
+        nextOpen = addDays(win.start, 1);
+        nextClose = addDays(win.end, 1);
+      } else if (now < win.start) {
+        nextOpen = win.start;
+        nextClose = win.end;
+      }
+
+      let label = "CLOSED";
+      let reason = "outside send window";
+      if (sent >= cap && cap > 0) {
+        label = "CAP HIT";
+        reason = "daily send cap reached";
+      } else if (!win.isOpen) {
+        label = "CLOSED";
+        reason = "outside send window";
+      } else if (due <= 0) {
+        label = "IDLE";
+        reason = "no leads due right now";
+      } else {
+        label = "OPEN";
+        reason = "eligible to send";
+      }
+
+      const nextTick = label === "OPEN" ? nextBoundary(5, now) : nextOpen;
+      return { label, reason, nextOpen, nextClose, nextTick, win };
+    }
+
+    function summarizeSenders(counts, short=false){
+      const entries = Object.entries(counts || {});
+      if(!entries.length) return "none yet";
+      return entries.map(([email, count]) => {
+        if(!short) return `${email}:${count}`;
+        const local = String(email).split("@")[0] || email;
+        return `${local} ${count}`;
+      }).join(" Â· ");
+    }
+
+    function escapeHtml(value){
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function humanAgo(iso){
+      if(!iso) return "";
+      const then = new Date(iso);
+      const diffMs = Date.now() - then.getTime();
+      const diffMin = Math.max(0, Math.round(diffMs / 60000));
+      if(diffMin < 1) return "just now";
+      if(diffMin < 60) return `${diffMin}m ago`;
+      const diffHr = Math.round(diffMin / 60);
+      if(diffHr < 24) return `${diffHr}h ago`;
+      const diffDay = Math.round(diffHr / 24);
+      return `${diffDay}d ago`;
+    }
+
+    function renderActivityList(elId, items, {incoming=false} = {}){
+      const el = $(elId);
+      if(!items || !items.length){
+        el.innerHTML = `<div class="activity-item"><div class="activity-title">none yet</div><div class="activity-sub">No events logged.</div></div>`;
+        return;
+      }
+      el.innerHTML = items.slice(0, 4).map(item => {
+        const when = humanAgo(item.created_at);
+        const company = item.company_name || item.from_name || item.from_email || item.to_email || "unknown";
+        const address = incoming ? (item.from_email || "") : (item.to_email || "");
+        const secondary = incoming ? (item.status || "") : (item.sender_address || "");
+        const preview = item.body_preview || "no preview stored yet";
+        const subject = item.subject || "(no subject)";
+        return `
+          <div class="activity-item">
+            <div class="activity-top"><span>${escapeHtml(when)}</span><span>${escapeHtml(subject)}</span></div>
+            <div class="activity-title">${escapeHtml(company)}</div>
+            <div class="activity-sub">${escapeHtml(address)}${secondary ? ` Â· ${escapeHtml(secondary)}` : ""}</div>
+            <div class="activity-preview">${escapeHtml(preview)}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderSenderBars(counts){
+      const el = $("senderBars");
+      const entries = Object.entries(counts || {});
+      if(!entries.length){
+        el.innerHTML = `<div class="mini-row"><div class="left">Sender split</div><div>none yet</div></div>`;
+        return;
+      }
+      const max = Math.max(...entries.map(x => Number(x[1]||0)), 1);
+      el.innerHTML = entries.map(([name, value]) => {
+        const pct = Math.max(4, Math.round((Number(value||0)/max)*100));
+        return `
+          <div class="barrow">
+            <div class="barname"><span>${escapeHtml(name)}</span><span>${escapeHtml(value)}</span></div>
+            <div class="track"><div class="fill" style="width:${pct}%"></div></div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function render(status, money){
+      lastPayload = {status, money};
+      const session = sessionState(status);
+      const senderSummaryShort = summarizeSenders(status.sender_counts_today || {}, true);
+      const senderSummaryFull = summarizeSenders(status.sender_counts_today || {}, false);
+      const paymentsToday = Number(money.today?.payments_count || 0);
+
+      $("liveState").textContent = "live";
+      $("marketPill").textContent = `${session.label} Â· ${session.reason}`;
+      $("lastUpdatedPill").textContent = `Last update ${fmtTime(new Date())}`;
+      $("heroValue").textContent = fmtMoney(money.today?.gross_usd || 0);
+      $("replyMailbox").textContent = status.reply_mailbox_address || "--";
+      $("replyToMeta").textContent = `Reply-To ${status.reply_to_email || '--'}`;
+      $("senderSummaryTop").textContent = senderSummaryShort;
+      $("moneyTodayMini").textContent = fmtMoney(money.today?.gross_usd || 0);
+      $("moneyTodayMiniSub").textContent = `${paymentsToday} payment${paymentsToday === 1 ? '' : 's'}`;
+      $("nextTick").textContent = fmtShort(session.nextTick);
+      $("nextTickSub").textContent = session.label === "OPEN" ? `next send tick Â· ${session.win.tz}` : `next open ${fmtShort(session.nextOpen)} Â· ${session.win.tz}`;
+
+      $("repliesToday").textContent = status.replies_today ?? 0;
+      $("repliesSub").textContent = `${status.replies_today ?? 0} today`;
+      $("repliesFoot").textContent = (status.replies_today ?? 0) > 0 ? "real signal present" : "watch this first";
+
+      $("moneyToday").textContent = fmtMoney(money.today?.gross_usd || 0);
+      $("moneySub").textContent = `today Â· ${paymentsToday} payment${paymentsToday === 1 ? '' : 's'}`;
+      $("moneyFoot").textContent = `week ${fmtMoney(money.week?.gross_usd || 0)} Â· month ${fmtMoney(money.month?.gross_usd || 0)}`;
+
+      $("sentToday").textContent = status.sent_today ?? 0;
+      $("sentSub").textContent = `${status.sent_today ?? 0} / ${status.daily_send_cap ?? 0} cap`;
+      $("sentFoot").textContent = `sender split ${senderSummaryShort}`;
+
+      $("dueNow").textContent = status.due_now_count ?? 0;
+      $("queueSub").textContent = `${status.due_now_count ?? 0} due now`;
+      $("queueFoot").textContent = `${status.in_sequence_count ?? 0} in sequence`;
+
+      $("windowValue").textContent = session.label;
+      $("windowSub").textContent = `${fmtShort(session.win.start)}â€“${fmtShort(session.win.end)} Â· ${session.win.tz}`;
+      $("windowFoot").textContent = `cap ${status.daily_send_cap ?? 0} Â· ${session.reason}`;
+
+      $("replyToEmail").textContent = status.reply_to_email || "--";
+      $("outboundProvider").textContent = status.provider || "--";
+      $("mailboxes").textContent = status.smtp_mailboxes_configured ?? 0;
+      $("perMailboxCap").textContent = status.per_mailbox_daily_cap ?? 0;
+      $("moneyWeek").textContent = `${fmtMoney(money.week?.gross_usd || 0)} Â· ${money.week?.payments_count || 0} payments`;
+      $("moneyMonth").textContent = `${fmtMoney(money.month?.gross_usd || 0)} Â· ${money.month?.payments_count || 0} payments`;
+
+      renderSenderBars(status.sender_counts_today || {});
+      renderActivityList("recentSentList", status.recent_sent || []);
+      renderActivityList("recentReplyList", status.recent_replies || [], {incoming:true});
+
+      $("statusLine").innerHTML = `<span class="good">Replies â†’ Money â†’ Sends â†’ Queue â†’ Window.</span> If replies and money stay at 0 after enough sends, change targeting or the first email.`;
+    }
+
+    async function fetchAll(){
+      try{
+        const [statusRes, moneyRes] = await Promise.all([
+          fetch(STATUS_URL, {cache:"no-store"}),
+          fetch(MONEY_URL, {cache:"no-store"})
+        ]);
+        if(!statusRes.ok || !moneyRes.ok) throw new Error(`status ${statusRes.status} / money ${moneyRes.status}`);
+        const status = await statusRes.json();
+        const money = await moneyRes.json();
+        render(status, money);
+      }catch(err){
+        $("liveState").textContent = "stale";
+        $("statusLine").innerHTML = `<span class="bad">Fetch failed: ${String(err.message || err)}</span>`;
+      }
+    }
+
+    $("refreshBtn").addEventListener("click", fetchAll);
+
+    $("copyBtn").addEventListener("click", async () => {
+      if(!lastPayload){
+        $("statusLine").innerHTML = `<span class="warn">Nothing loaded yet.</span>`;
+        return;
+      }
+      const s = lastPayload.status;
+      const m = lastPayload.money;
+      const text = [
+        `Relay Live`,
+        `replies_today=${s.replies_today}`,
+        `money_today=${m.today?.gross_usd || 0}`,
+        `payments_today=${m.today?.payments_count || 0}`,
+        `sent_today=${s.sent_today}`,
+        `due_now_count=${s.due_now_count}`,
+        `in_sequence_count=${s.in_sequence_count}`,
+        `daily_send_cap=${s.daily_send_cap}`,
+        `send_window_is_open=${s.send_window_is_open}`,
+        `sender_counts_today=${JSON.stringify(s.sender_counts_today || {})}`,
+        `reply_to_email=${s.reply_to_email || ''}`,
+        `reply_mailbox_address=${s.reply_mailbox_address || ''}`,
+        `recent_sent=${JSON.stringify((s.recent_sent || []).slice(0,3))}`,
+        `recent_replies=${JSON.stringify((s.recent_replies || []).slice(0,3))}`
+      ].join("\n");
+      await navigator.clipboard.writeText(text);
+      $("statusLine").innerHTML = `<span class="good">Status copied.</span>`;
+    });
+
+    fetchAll();
+    setInterval(fetchAll, 5000);
+  </script>
 </body>
 </html>
+
