@@ -17,6 +17,7 @@ from app.services.relay_money_optimizer_patch import optimized_auto_reply_text
 
 
 _applied = False
+_original_outreach_status = None
 
 
 def _send_direct_smtp(to_email: str, subject: str, plain_text: str, html_body: str) -> dict[str, Any]:
@@ -187,14 +188,24 @@ def optimized_poll_reply_mailbox(limit: int | None = None) -> dict[str, Any]:
 
 
 def apply_relay_reply_autoclose_patch() -> None:
-    global _applied
+    global _applied, _original_outreach_status
     if _applied:
         return
 
     import app.api.routes.custom_outreach as outreach_route
     import app.services.custom_outreach as outreach
 
+    _original_outreach_status = outreach.outreach_status
     outreach.poll_reply_mailbox = optimized_poll_reply_mailbox
+    outreach.outreach_status = optimized_outreach_status
     outreach_route.poll_reply_mailbox = optimized_poll_reply_mailbox
+    outreach_route.outreach_status = optimized_outreach_status
 
     _applied = True
+
+
+def optimized_outreach_status() -> dict[str, Any]:
+    assert _original_outreach_status is not None
+    status = _original_outreach_status()
+    status["reply_autoclose_mode"] = "transactional_smtp_cap_bypass"
+    return status
