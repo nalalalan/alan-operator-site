@@ -29,14 +29,18 @@ from app.models.production_wiring import (  # noqa: F401
 from app.api.routes.autonomous_ops import router as autonomous_ops_router
 from app.api.routes.custom_outreach import router as custom_outreach_router
 from app.api.routes.relay_intent import router as relay_intent_router
+from app.services.relay_recovery_patch import apply_relay_recovery_patch, router as relay_recovery_router
 
 
+apply_relay_recovery_patch()
 
 
 def _cors_origins() -> list[str]:
     defaults = [
         "https://relay.aolabs.io",
         "https://www.relay.aolabs.io",
+        "https://liverelay.aolabs.io",
+        "https://www.liverelay.aolabs.io",
         "https://nalalalan.github.io",
         "https://nalalalan.github.io/alan-operator-site",
         "http://localhost:3000",
@@ -80,6 +84,7 @@ app.include_router(real_lead_source_daily_outbound_router, prefix="/daily-outbou
 app.include_router(lead_drop_intake_router, prefix="/lead-drop", tags=["lead-drop"])
 app.include_router(daily_lead_drop_runner_router, prefix="/daily-lead-drop-runner", tags=["daily-lead-drop-runner"])
 app.include_router(acquisition_supervisor_router, prefix="/acquisition-supervisor", tags=["acquisition-supervisor"])
+app.include_router(relay_recovery_router, prefix="/acquisition-supervisor", tags=["acquisition-supervisor"])
 app.include_router(autonomous_ops_router, prefix="/ops", tags=["ops"])
 app.include_router(custom_outreach_router, prefix="/custom-outreach", tags=["custom-outreach"])
 app.include_router(relay_intent_router, prefix="/api/relay", tags=["relay-intent"])
