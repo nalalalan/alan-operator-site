@@ -33,9 +33,11 @@ from app.services.relay_recovery_patch import (
     apply_relay_recovery_patch,
     router as relay_recovery_router,
 )
+from app.services.relay_money_optimizer_patch import apply_relay_money_optimizer_patch
 
 
 apply_relay_recovery_patch()
+apply_relay_money_optimizer_patch()
 
 
 def _cors_origins() -> list[str]:
