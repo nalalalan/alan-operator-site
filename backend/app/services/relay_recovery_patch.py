@@ -592,6 +592,22 @@ async def _relay_money_loop_tick(
                 "error": str(exc),
                 "q_keywords": query,
             }
+            if _original_apollo_search is not None:
+                try:
+                    fallback_result = await _original_apollo_search({"q_keywords": query, "source": "apify"})
+                    refill_result = {
+                        "status": "degraded_ok",
+                        "reason": "apollo_refill_failed_apify_fallback_ran",
+                        "error": str(exc),
+                        "q_keywords": query,
+                        "fallback_result": fallback_result,
+                    }
+                except Exception as fallback_exc:
+                    refill_result["fallback_result"] = {
+                        "status": "error",
+                        "reason": "apify_fallback_failed",
+                        "error": str(fallback_exc),
+                    }
 
     if send_live:
         outreach_result = _compact_outreach_result(await asyncio.to_thread(outreach.run_custom_outreach_cycle))
