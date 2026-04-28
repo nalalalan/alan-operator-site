@@ -82,6 +82,8 @@ _money_loop_state: dict[str, Any] = {
     "running": False,
     "last_tick_at": "",
     "last_result": None,
+    "last_manual_kick_at": "",
+    "last_manual_result": None,
     "last_error": "",
     "ticks": 0,
 }
@@ -543,7 +545,7 @@ def money_loop_status() -> dict:
 @router.post("/money-kick")
 async def money_kick(body: dict[str, Any] | None = None) -> dict[str, Any]:
     body = body or {}
-    return await _relay_money_loop_tick(
+    result = await _relay_money_loop_tick(
         force_refill=_body_bool(body, "force_refill", True),
         refill_query=str(body.get("q_keywords") or "").strip() or None,
         refill_per_page=_body_int(
@@ -555,6 +557,9 @@ async def money_kick(body: dict[str, Any] | None = None) -> dict[str, Any]:
         ),
         send_live=_body_bool(body, "send_live", True),
     )
+    _money_loop_state["last_manual_kick_at"] = datetime.now(timezone.utc).isoformat()
+    _money_loop_state["last_manual_result"] = result
+    return result
 
 
 async def _relay_money_loop_tick(
