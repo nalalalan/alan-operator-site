@@ -6,7 +6,7 @@ from datetime import datetime
 from email.message import EmailMessage
 from typing import Any, Callable
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.core.config import settings
 from app.db.base import SessionLocal
@@ -127,6 +127,46 @@ OPTIMIZED_STEP_TEMPLATES = [
 
 _applied = False
 _original_outreach_status: Callable[[], dict[str, Any]] | None = None
+
+
+def _active_experiment() -> dict[str, Any]:
+    try:
+        from app.services.relay_performance import active_relay_experiment
+
+        experiment = active_relay_experiment()
+    except Exception as exc:
+        experiment = {
+            "experiment_variant": "control_sample_ask",
+            "experiment_label": "Control: sample ask",
+            "source": "fallback",
+            "error": str(exc),
+        }
+
+    variant = str(experiment.get("experiment_variant") or "control_sample_ask")
+    experiment["experiment_variant"] = variant
+    return experiment
+
+
+def _templates_for_variant(variant: str) -> list[StepTemplate]:
+    try:
+        import app.services.custom_outreach as outreach
+
+        variants = getattr(outreach, "STEP_TEMPLATE_VARIANTS", {}) or {}
+        templates = variants.get(variant)
+        if templates:
+            return templates
+    except Exception:
+        pass
+    return OPTIMIZED_STEP_TEMPLATES
+
+
+def _prospect_variant(sent_events: list[Any], fallback_variant: str) -> str:
+    for event in sent_events:
+        payload = _safe_json(getattr(event, "payload_json", None))
+        variant = str(payload.get("experiment_variant") or "").strip()
+        if variant:
+            return variant
+    return fallback_variant or "control_sample_ask"
 
 
 def _landing_page_url() -> str:
@@ -275,6 +315,16 @@ def _quality_snapshot(session) -> dict[str, Any]:
 
     daily_cap = int(settings.buyer_acq_daily_send_cap or 0)
     sent_today = int(outreach._daily_send_count(session) or 0)
+    total_replies_all_time = int(
+        session.execute(
+            select(func.count(AcquisitionEvent.id)).where(
+                AcquisitionEvent.event_type.in_(
+                    ["custom_outreach_reply_seen", "smartlead_reply"]
+                )
+            )
+        ).scalar()
+        or 0
+    )
 
     return {
         "direct_inbox_count": direct_active,
@@ -285,10 +335,18 @@ def _quality_snapshot(session) -> dict[str, Any]:
         "sendable_due_count": sendable_due,
         "generic_paused_count": paused_generic,
         "cap_remaining": max(daily_cap - sent_today, 0),
+        "total_replies_all_time": total_replies_all_time,
     }
 
 
 def _next_money_move(status: dict[str, Any]) -> str:
+    total_sends = int(status.get("total_sends_all_time") or 0)
+    total_replies = int(status.get("total_replies_all_time") or 0)
+    if total_sends >= 100 and total_replies == 0:
+        return (
+            f"No reply signal after {total_sends} sends. Treat this as a targeting/copy problem: "
+            "use the active sample-first experiment, keep volume capped, and refill only direct decision-maker leads."
+        )
     if int(status.get("replies_today") or 0) > 0:
         return "Handle replies first; real humans are closest to money."
     if int(status.get("blocked_bad_email_count") or 0) > 0:
@@ -328,6 +386,8 @@ def optimized_send_due_sequence_messages(limit: int | None = None) -> dict[str, 
     sent = 0
     skipped = 0
     failures: list[dict[str, Any]] = []
+    active_experiment = _active_experiment()
+    active_variant = str(active_experiment.get("experiment_variant") or "control_sample_ask")
 
     window = outreach._send_window_status()
     if not window["is_open"]:
@@ -374,7 +434,9 @@ def optimized_send_due_sequence_messages(limit: int | None = None) -> dict[str, 
             if outreach._has_any_reply(session, prospect.external_id):
                 continue
             sent_events = outreach._sent_events_for_prospect(session, prospect.external_id)
-            step = outreach._step_due(prospect, sent_events)
+            prospect_variant = _prospect_variant(sent_events, active_variant)
+            templates = _templates_for_variant(prospect_variant)
+            step = outreach._step_due(prospect, sent_events, templates=templates)
             if step is None:
                 skipped += 1
                 continue
@@ -403,6 +465,8 @@ def optimized_send_due_sequence_messages(limit: int | None = None) -> dict[str, 
                 break
 
             try:
+                sent_events = outreach._sent_events_for_prospect(session, prospect.external_id)
+                prospect_variant = _prospect_variant(sent_events, active_variant)
                 plain_text = outreach._render_body(step, prospect)
                 html_body = plain_text.replace("\n", "<br>")
                 result = outreach._outbound_send(
@@ -426,6 +490,9 @@ def optimized_send_due_sequence_messages(limit: int | None = None) -> dict[str, 
                         "fit_band": prospect.fit_band,
                         "is_generic_inbox": _is_generic_inbox(prospect.contact_email),
                         "quality_gate": "direct_decision_maker_first",
+                        "experiment_variant": prospect_variant,
+                        "active_experiment_variant": active_variant,
+                        "active_experiment_label": active_experiment.get("experiment_label"),
                         "body_preview": outreach._preview_text(plain_text, limit=240),
                         **result,
                     },
@@ -453,6 +520,7 @@ def optimized_send_due_sequence_messages(limit: int | None = None) -> dict[str, 
         "sent_count": sent,
         "skipped_count": skipped + paused_generic,
         "failures": failures,
+        "active_experiment": active_experiment,
         "quality_gate": {
             "policy": policy,
             "direct_due_count": len(direct_due),
@@ -679,6 +747,10 @@ def apply_relay_money_optimizer_patch() -> None:
     ops.import_from_apollo_people_search = optimized_import_from_apollo_people_search
 
     outreach.STEP_TEMPLATES = OPTIMIZED_STEP_TEMPLATES
+    outreach.STEP_TEMPLATE_VARIANTS = {
+        **(getattr(outreach, "STEP_TEMPLATE_VARIANTS", {}) or {}),
+        "control_sample_ask": OPTIMIZED_STEP_TEMPLATES,
+    }
     outreach._landing_page_url = _landing_page_url
     outreach._sample_url = _sample_url
     outreach._render_body = _render_body
