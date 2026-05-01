@@ -11,7 +11,7 @@ from sqlalchemy import func, select
 from app.core.config import settings
 from app.db.base import SessionLocal
 from app.integrations.apollo import ApolloClient
-from app.models.acquisition_supervisor import AcquisitionProspect
+from app.models.acquisition_supervisor import AcquisitionEvent, AcquisitionProspect
 from app.services.custom_outreach import StepTemplate
 
 
