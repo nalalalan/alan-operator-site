@@ -158,6 +158,111 @@ def _send_messy_notes_email(payload: RelayIntentLeadIn, email: str, score: int) 
         return {"status": "failed", "reason": str(exc)[:500]}
 
 
+def _messy_notes_customer_email_html(to_email: str) -> str:
+    sample_url = _relay_url("/sample.pdf")
+    notes_url = _relay_url("/#send-notes")
+    checkout_url = settings.packet_checkout_url or "#"
+    safe_email = escape(to_email)
+    return f"""
+    <div style="font-family:Arial,sans-serif;line-height:1.55;color:#221b17;max-width:620px">
+      <p>Got your Relay notes.</p>
+      <p>
+        The paid next step is the one-call packet. I turn one messy sales or client call
+        into the recap, next steps, follow-up draft, open questions, and CRM-ready update.
+      </p>
+      <p>
+        <a href="{checkout_url}" style="color:#a05f2f;font-weight:700">Start the $40 packet</a>
+      </p>
+      <p>
+        Sample:
+        <a href="{sample_url}" style="color:#a05f2f;font-weight:700">open the sample packet</a>
+      </p>
+      <p style="font-size:13px;color:#756961">
+        If you need to resend or add detail, use <a href="{notes_url}" style="color:#756961">the notes form</a>.
+        Sent to {safe_email}.
+      </p>
+    </div>
+    """.strip()
+
+
+def _send_messy_notes_customer_email(email: str) -> dict[str, Any]:
+    if not settings.resend_api_key:
+        return {"status": "skipped", "reason": "RESEND_API_KEY is not configured"}
+
+    try:
+        from app.integrations.resend_client import ResendClient
+
+        response = ResendClient().send_email(
+            to_email=email,
+            subject="Got your Relay notes",
+            html=_messy_notes_customer_email_html(email),
+            from_email=settings.from_email_fulfillment or settings.from_email_outbound,
+            reply_to=settings.reply_to_email,
+        )
+        return {
+            "status": "sent",
+            "provider": "resend",
+            "provider_id": response.get("id") if isinstance(response, dict) else None,
+        }
+    except Exception as exc:
+        return {"status": "failed", "reason": str(exc)[:500]}
+
+
+def _upsert_relay_acquisition_prospect(
+    db,
+    lead: RelayIntentLead,
+    payload: RelayIntentLeadIn,
+    email: str,
+    source: str,
+    score: int,
+) -> dict[str, Any]:
+    metadata = payload.metadata or {}
+    notes = str(metadata.get("notes") or "").strip()[:5000]
+    prospect = (
+        db.query(AcquisitionProspect)
+        .filter(AcquisitionProspect.contact_email == email)
+        .order_by(AcquisitionProspect.created_at.desc())
+        .first()
+    )
+
+    created = False
+    if prospect is None:
+        prospect = AcquisitionProspect(
+            external_id=f"relay-lead:{lead.id}",
+            contact_email=email,
+            company_name=str(metadata.get("company_name") or metadata.get("client_name") or "Relay lead")[:255],
+            source="relay_intent",
+            status="interested",
+            fit_score=score,
+            fit_band="inbound",
+        )
+        db.add(prospect)
+        created = True
+
+    if prospect.status not in {"paid", "intake_received"}:
+        prospect.status = "interested"
+    prospect.source = prospect.source or "relay_intent"
+    prospect.fit_score = max(int(prospect.fit_score or 0), score)
+    prospect.fit_band = prospect.fit_band or "inbound"
+    prospect.notes = notes or prospect.notes
+    prospect.payload_json = json.dumps(
+        {
+            "relay_lead_id": lead.id,
+            "session_id": lead.session_id,
+            "source": source,
+            "score": score,
+            "metadata": metadata,
+        },
+        ensure_ascii=False,
+    )[:8000]
+
+    return {
+        "status": "created" if created else "updated",
+        "external_id": prospect.external_id,
+        "contact_email": prospect.contact_email,
+    }
+
+
 def _user_agent(request: Request) -> str | None:
     ua = request.headers.get("user-agent")
     return ua[:1000] if ua else None
@@ -352,6 +457,13 @@ def record_relay_lead(payload: RelayIntentLeadIn, request: Request) -> dict[str,
         db.refresh(lead)
 
         source_lower = source.lower()
+        acquisition_prospect = (
+            _upsert_relay_acquisition_prospect(db, lead, payload, email, source, score)
+            if "messy_notes" in source_lower
+            else {"status": "skipped", "reason": "not a messy notes request"}
+        )
+        db.commit()
+
         sample_email = (
             _send_sample_email(email)
             if "sample" in source_lower
@@ -359,6 +471,11 @@ def record_relay_lead(payload: RelayIntentLeadIn, request: Request) -> dict[str,
         )
         operator_email = (
             _send_messy_notes_email(payload, email, score)
+            if "messy_notes" in source_lower
+            else {"status": "skipped", "reason": "not a messy notes request"}
+        )
+        customer_email = (
+            _send_messy_notes_customer_email(email)
             if "messy_notes" in source_lower
             else {"status": "skipped", "reason": "not a messy notes request"}
         )
@@ -375,8 +492,10 @@ def record_relay_lead(payload: RelayIntentLeadIn, request: Request) -> dict[str,
                             "email": email,
                             "source": source,
                             "score": score,
+                            "acquisition_prospect": acquisition_prospect,
                             "sample_email": sample_email,
                             "operator_email": operator_email,
+                            "customer_email": customer_email,
                         },
                         ensure_ascii=False,
                     ),
@@ -395,7 +514,9 @@ def record_relay_lead(payload: RelayIntentLeadIn, request: Request) -> dict[str,
                                 "email": email,
                                 "source": source,
                                 "score": score,
+                                "acquisition_prospect": acquisition_prospect,
                                 "operator_email": operator_email,
+                                "customer_email": customer_email,
                             },
                             ensure_ascii=False,
                         ),
@@ -412,6 +533,8 @@ def record_relay_lead(payload: RelayIntentLeadIn, request: Request) -> dict[str,
             "score": score,
             "sample_email": sample_email,
             "operator_email": operator_email,
+            "customer_email": customer_email,
+            "acquisition_prospect": acquisition_prospect,
         }
     except Exception as exc:
         db.rollback()

@@ -49,7 +49,7 @@ async def stripe_webhook(request: Request, stripe_signature: str | None = Header
 
     autopilot = {}
     email = _stripe_email(payload)
-    if email and acquisition_result.get("status") == "processed":
+    if email:
         autopilot = send_paid_onboarding_for_email(email)
 
     return {

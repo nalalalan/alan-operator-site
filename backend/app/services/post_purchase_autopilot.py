@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import html
+import hashlib
+import json
 import os
 from datetime import datetime, timedelta
 from typing import Any, Dict
@@ -12,6 +14,7 @@ from app.core.config import settings
 from app.db.base import SessionLocal
 from app.integrations.resend_client import ResendClient
 from app.models.acquisition_supervisor import AcquisitionEvent, AcquisitionProspect
+from app.models.relay_intent import RelayIntentLead
 
 
 def _session() -> Session:
@@ -22,7 +25,12 @@ def _intake_url() -> str:
     return (
         settings.client_intake_destination
         or os.getenv("CLIENT_INTAKE_URL", "").strip()
+        or _notes_url()
     )
+
+
+def _notes_url() -> str:
+    return settings.landing_page_url.rstrip("/") + "/#send-notes"
 
 
 def _pack_url() -> str:
@@ -42,6 +50,133 @@ def _monthly_url() -> str:
 def _find_prospect_by_email(session: Session, email: str) -> AcquisitionProspect | None:
     stmt = select(AcquisitionProspect).where(AcquisitionProspect.contact_email == email)
     return session.execute(stmt).scalar_one_or_none()
+
+
+def _ensure_paid_prospect(session: Session, email: str) -> AcquisitionProspect:
+    prospect = _find_prospect_by_email(session, email)
+    if prospect is None:
+        prospect = AcquisitionProspect(
+            external_id=f"stripe-buyer:{hashlib.sha256(email.encode('utf-8')).hexdigest()[:24]}",
+            contact_email=email,
+            company_name="paid Relay buyer",
+            source="stripe",
+            status="paid",
+            stripe_status="paid",
+            fit_score=100,
+            fit_band="paid",
+        )
+        session.add(prospect)
+    else:
+        prospect.status = "paid"
+        prospect.stripe_status = "paid"
+    return prospect
+
+
+def _safe_json(raw: str | None) -> dict[str, Any]:
+    if not raw:
+        return {}
+    try:
+        parsed = json.loads(raw)
+        return parsed if isinstance(parsed, dict) else {}
+    except Exception:
+        return {}
+
+
+def _latest_relay_notes_lead(session: Session, email: str) -> RelayIntentLead | None:
+    stmt = (
+        select(RelayIntentLead)
+        .where(RelayIntentLead.email == email)
+        .where(RelayIntentLead.source.ilike("%messy_notes%"))
+        .order_by(RelayIntentLead.created_at.desc())
+        .limit(1)
+    )
+    return session.execute(stmt).scalar_one_or_none()
+
+
+def _relay_notes_tally_payload(lead: RelayIntentLead, email: str) -> dict[str, Any] | None:
+    metadata = _safe_json(lead.metadata_json)
+    notes = str(metadata.get("notes") or "").strip()
+    if not notes:
+        return None
+
+    client_name = str(
+        metadata.get("client_name")
+        or metadata.get("company_name")
+        or metadata.get("client")
+        or "Client call"
+    ).strip()
+    focus = str(
+        metadata.get("focus")
+        or "recap, next steps, follow-up draft, open questions, and CRM-ready update"
+    ).strip()
+    tone = str(metadata.get("tone") or "clear and professional").strip()
+
+    def field(label: str, value: str) -> dict[str, str]:
+        return {"label": label, "value": value}
+
+    return {
+        "data": {
+            "submissionId": f"relay-notes-{lead.id}",
+            "respondentId": f"relay-lead-{lead.id}",
+            "createdAt": lead.created_at.isoformat() if lead.created_at else datetime.utcnow().isoformat(),
+            "fields": [
+                field("Where should we send your handoff packet?", email),
+                field("Client or company name", client_name),
+                field("What should this focus on?", focus),
+                field("Preferred tone for the follow-up email", tone),
+                field("Paste your rough client call notes", notes),
+            ],
+        }
+    }
+
+
+def _fulfill_paid_relay_notes(session: Session, prospect: AcquisitionProspect, email: str) -> dict[str, Any]:
+    if _event_exists(session, prospect.external_id, "autopilot_paid_relay_notes_fulfilled"):
+        return {"status": "skipped", "summary": "relay notes already fulfilled"}
+
+    lead = _latest_relay_notes_lead(session, email)
+    if lead is None:
+        return {"status": "skipped", "summary": "no relay notes found for buyer"}
+
+    payload = _relay_notes_tally_payload(lead, email)
+    if payload is None:
+        return {"status": "skipped", "summary": "relay notes were empty"}
+
+    try:
+        from app.workers.fulfillment import process_tally_submission
+
+        result = process_tally_submission(payload)
+        sent_count = int((result.get("sending") or {}).get("sent_count") or 0)
+        status = "sent" if sent_count > 0 else "processed"
+        _log_event(
+            session,
+            "autopilot_paid_relay_notes_fulfilled",
+            prospect.external_id,
+            "fulfilled paid buyer from existing Relay messy notes",
+            {
+                "email": email,
+                "relay_lead_id": lead.id,
+                "submission_id": result.get("submission_id", ""),
+                "result": result,
+            },
+        )
+        session.commit()
+        return {
+            "status": status,
+            "summary": "fulfilled paid buyer from existing Relay notes",
+            "relay_lead_id": lead.id,
+            "result": result,
+        }
+    except Exception as exc:
+        _log_event(
+            session,
+            "autopilot_paid_relay_notes_failed",
+            prospect.external_id,
+            "paid Relay notes fulfillment failed",
+            {"email": email, "relay_lead_id": lead.id, "error": str(exc)[:1000]},
+        )
+        session.commit()
+        return {"status": "error", "summary": "relay notes fulfillment failed", "error": str(exc)[:500]}
 
 
 def _event_exists(session: Session, prospect_external_id: str, event_type: str) -> bool:
@@ -93,9 +228,13 @@ def send_paid_onboarding_for_email(email: str) -> dict[str, Any]:
         return {"status": "ignored", "summary": "missing email"}
 
     with _session() as session:
-        prospect = _find_prospect_by_email(session, email)
-        if prospect is None:
-            return {"status": "ignored", "summary": "no matching prospect"}
+        prospect = _ensure_paid_prospect(session, email)
+        session.commit()
+
+        notes_fulfillment = _fulfill_paid_relay_notes(session, prospect, email)
+        if notes_fulfillment.get("status") in {"sent", "processed"}:
+            return notes_fulfillment
+
         if _event_exists(session, prospect.external_id, "autopilot_paid_onboarding_sent"):
             return {"status": "skipped", "summary": "already sent"}
 
