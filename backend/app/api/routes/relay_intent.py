@@ -65,6 +65,16 @@ def _json(data: dict[str, Any] | None) -> str | None:
     return json.dumps(data, ensure_ascii=False, sort_keys=True)[:8000]
 
 
+def _safe_payload(raw: str | None) -> dict[str, Any]:
+    if not raw:
+        return {}
+    try:
+        parsed = json.loads(raw)
+        return parsed if isinstance(parsed, dict) else {}
+    except Exception:
+        return {}
+
+
 def _internal_emails() -> set[str]:
     configured = os.getenv("RELAY_INTERNAL_EMAILS", "pham.alann@gmail.com").split(",")
     return {email.strip().lower() for email in configured if email.strip()}
@@ -336,6 +346,47 @@ def _latest_acquisition_event(db, *event_terms: str) -> dict[str, Any] | None:
         "summary": event.summary,
         "prospect_external_id": event.prospect_external_id,
         "created_at": event.created_at.isoformat(),
+    }
+
+
+def _latest_acquisition_payload(db, *event_terms: str) -> dict[str, Any] | None:
+    query = db.query(AcquisitionEvent)
+    for term in event_terms:
+        query = query.filter(AcquisitionEvent.event_type.ilike(f"%{term}%"))
+    event = query.order_by(AcquisitionEvent.created_at.desc()).first()
+    if not event:
+        return None
+    return _safe_payload(event.payload_json)
+
+
+def _compact_money_loop_payload(payload: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not payload:
+        return None
+    refill = payload.get("refill_result") if isinstance(payload.get("refill_result"), dict) else {}
+    fallback = refill.get("fallback_result") if isinstance(refill.get("fallback_result"), dict) else {}
+    status_after = payload.get("status_after") if isinstance(payload.get("status_after"), dict) else {}
+    return {
+        "refill_status": refill.get("status"),
+        "refill_reason": refill.get("reason"),
+        "refill_query": refill.get("q_keywords"),
+        "refill_upserted": refill.get("upserted"),
+        "fallback_status": fallback.get("status"),
+        "fallback_upserted": fallback.get("upserted"),
+        "fallback_searched": fallback.get("searched"),
+        "active_experiment_needs_sample": payload.get("active_experiment_needs_sample"),
+        "active_experiment_new_due_before": payload.get("active_experiment_new_due_before"),
+        "refill_due_before": payload.get("refill_due_before"),
+        "direct_due_before": payload.get("direct_due_before"),
+        "status_after": {
+            "active_experiment_variant": status_after.get("active_experiment_variant"),
+            "active_experiment_sends": status_after.get("active_experiment_sends"),
+            "active_experiment_sample_target": status_after.get("active_experiment_sample_target"),
+            "active_experiment_needs_sample": status_after.get("active_experiment_needs_sample"),
+            "active_experiment_new_due_count": status_after.get("active_experiment_new_due_count"),
+            "direct_due_count": status_after.get("direct_due_count"),
+            "cap_remaining": status_after.get("cap_remaining"),
+            "next_money_move": status_after.get("next_money_move"),
+        },
     }
 
 
@@ -756,6 +807,7 @@ def relay_ops_check(days: int = 14) -> dict[str, Any]:
             "last_payment_or_paid_prospect": _latest_acquisition_event(db, "paid"),
             "last_success_control_tick": _latest_acquisition_event(db, "relay_success_control_tick"),
             "last_money_loop_tick": _latest_acquisition_event(db, "relay_money_loop_tick"),
+            "last_money_loop_detail": _compact_money_loop_payload(_latest_acquisition_payload(db, "relay_money_loop_tick")),
             "last_outbound_experiment_plan": _latest_acquisition_event(db, "relay_experiment_plan"),
             "last_inbound_followup": _latest_acquisition_event(db, "autopilot_messy_notes_checkout_followup_sent")
             or _latest_acquisition_event(db, "autopilot_messy_notes_second_followup_sent")
@@ -800,9 +852,11 @@ def relay_ops_check(days: int = 14) -> dict[str, Any]:
         }
         try:
             from app.services.relay_performance import relay_performance_status
+            from app.services.custom_outreach import outreach_status
 
             performance = relay_performance_status()
             active_experiment = performance.get("active_experiment") or {}
+            outreach = outreach_status()
             checks["relay_performance"] = {
                 "active_experiment": {
                     "experiment_variant": active_experiment.get("experiment_variant"),
@@ -812,6 +866,17 @@ def relay_ops_check(days: int = 14) -> dict[str, Any]:
                 },
                 "active_experiment_signal": performance.get("active_experiment_signal") or {},
                 "rolling_7_day": performance.get("rolling_7_day") or {},
+                "active_experiment_queue": {
+                    "active_experiment_variant": outreach.get("active_experiment_variant"),
+                    "active_experiment_sends": outreach.get("active_experiment_sends"),
+                    "active_experiment_sample_target": outreach.get("active_experiment_sample_target"),
+                    "active_experiment_needs_sample": outreach.get("active_experiment_needs_sample"),
+                    "active_experiment_new_due_count": outreach.get("active_experiment_new_due_count"),
+                    "direct_due_count": outreach.get("direct_due_count"),
+                    "cap_remaining": outreach.get("cap_remaining"),
+                    "send_window_is_open": outreach.get("send_window_is_open"),
+                    "next_money_move": outreach.get("next_money_move"),
+                },
             }
         except Exception as exc:
             checks["relay_performance"] = {

@@ -260,7 +260,26 @@ def _status_label(value: Any) -> str:
         return str(value or "unknown")[:80]
     status = value.get("status")
     if isinstance(status, str) and status.strip():
-        return status.strip()[:80]
+        label = status.strip()
+        if label in {"degraded_ok", "error"}:
+            details: list[str] = []
+            reason = str(value.get("reason") or "").strip()
+            if reason:
+                details.append(reason)
+            fallback = value.get("fallback_result")
+            if isinstance(fallback, dict):
+                fallback_status = str(fallback.get("status") or "").strip()
+                upserted = fallback.get("upserted")
+                searched = fallback.get("searched")
+                if fallback_status:
+                    details.append(f"fallback={fallback_status}")
+                if upserted is not None:
+                    details.append(f"upserted={upserted}")
+                if searched is not None:
+                    details.append(f"searched={searched}")
+            if details:
+                label = f"{label}:{','.join(details)}"
+        return label[:160]
     if isinstance(status, dict):
         return "snapshot"
     reason = value.get("reason") or value.get("summary")
