@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import json
 import smtplib
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 from typing import Any, Callable
 
@@ -481,6 +481,29 @@ def _experiment_sample_target() -> int:
         return 20
 
 
+def _parse_experiment_datetime(value: Any) -> datetime | None:
+    if not value:
+        return None
+    raw = str(value).strip()
+    if not raw:
+        return None
+    try:
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except Exception:
+        return None
+    if parsed.tzinfo is not None:
+        parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
+    return parsed
+
+
+def _active_experiment_start(experiment: dict[str, Any]) -> datetime:
+    for key in ("week_start", "week_start_date", "created_at", "logged_at"):
+        parsed = _parse_experiment_datetime(experiment.get(key))
+        if parsed is not None:
+            return parsed
+    return datetime.utcnow() - timedelta(days=7)
+
+
 def _active_generic_sample_cap() -> int:
     try:
         return max(int(os.getenv("RELAY_ACTIVE_GENERIC_SAMPLE_DAILY_CAP", "2") or 2), 0)
@@ -519,8 +542,8 @@ def _event_variant(event: AcquisitionEvent) -> str:
     return str(payload.get("experiment_variant") or "control_sample_ask").strip() or "control_sample_ask"
 
 
-def _active_variant_send_count(session, active_variant: str) -> int:
-    since = datetime.utcnow() - timedelta(days=7)
+def _active_variant_send_count(session, active_variant: str, experiment: dict[str, Any] | None = None) -> int:
+    since = _active_experiment_start(experiment or {})
     events = list(
         session.execute(
             select(AcquisitionEvent)
@@ -577,7 +600,7 @@ def _quality_snapshot(session) -> dict[str, Any]:
     strict_mode = _zero_reply_strict_mode(total_sends_all_time, total_replies_all_time)
     active_experiment = _active_experiment()
     active_variant = str(active_experiment.get("experiment_variant") or "control_sample_ask")
-    active_variant_sends = _active_variant_send_count(session, active_variant)
+    active_variant_sends = _active_variant_send_count(session, active_variant, active_experiment)
     experiment_sample_target = _experiment_sample_target()
     active_experiment_direct_new_due = 0
     active_experiment_generic_new_due = 0
@@ -650,6 +673,7 @@ def _quality_snapshot(session) -> dict[str, Any]:
         "total_sends_all_time": total_sends_all_time,
         "total_replies_all_time": total_replies_all_time,
         "active_experiment_variant": active_variant,
+        "active_experiment_started_at": _active_experiment_start(active_experiment).isoformat(),
         "active_experiment_sends": active_variant_sends,
         "active_experiment_sample_target": experiment_sample_target,
         "active_experiment_needs_sample": active_variant_sends < experiment_sample_target,
@@ -845,7 +869,7 @@ def optimized_send_due_sequence_messages(limit: int | None = None) -> dict[str, 
         blocked_bad_email = 0
         duplicate_email_blocked = 0
         weak_decision_maker_blocked = 0
-        active_variant_sends = _active_variant_send_count(session, active_variant)
+        active_variant_sends = _active_variant_send_count(session, active_variant, active_experiment)
         experiment_sample_target = _experiment_sample_target()
         total_sends_all_time = int(outreach._total_send_count(session) or 0)
         total_replies_all_time = int(

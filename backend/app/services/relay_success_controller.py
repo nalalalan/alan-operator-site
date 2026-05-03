@@ -703,6 +703,11 @@ def relay_success_snapshot(days: int = 7) -> dict[str, Any]:
         )
         due_followups = _due_followup_counts(session, now=now)
 
+    try:
+        performance = relay_performance_status()
+    except Exception as error:
+        performance = {"status": "error", "error": str(error)}
+
     send_window_seconds_open = _send_window_seconds_open(outreach)
     due_now = int(outreach.get("due_now_count") or outreach.get("queued_count") or 0)
     sent_today = int(outreach.get("sent_today") or 0)
@@ -790,6 +795,7 @@ def relay_success_snapshot(days: int = 7) -> dict[str, Any]:
             "paid_onboarding_sent": onboarding,
             "paid_notes_fulfilled": fulfilled,
         },
+        "performance": performance,
     }
 
 
@@ -801,6 +807,20 @@ def _bottleneck(snapshot: dict[str, Any]) -> str:
     intent = snapshot["intent"]
     outreach = snapshot["outreach"]
     conversion = snapshot["conversion"]
+    performance = snapshot.get("performance") if isinstance(snapshot.get("performance"), dict) else {}
+    performance_ok = performance.get("status") == "ok"
+    active_signal = performance.get("active_experiment_signal") if isinstance(performance.get("active_experiment_signal"), dict) else {}
+    active_sends = int(active_signal.get("sends") or outreach.get("active_experiment_sends") or 0)
+    active_target = int(outreach.get("active_experiment_sample_target") or _experiment_failure_sample())
+    active_replies = int(active_signal.get("replies") or 0)
+    active_payments = int(active_signal.get("payments") or 0)
+    active_sample_complete_without_signal = (
+        performance_ok
+        and active_target > 0
+        and active_sends >= active_target
+        and active_replies <= 0
+        and active_payments <= 0
+    )
 
     if int(money.get("payments") or 0) > 0 and int(conversion.get("paid_notes_fulfilled") or 0) < int(money.get("payments") or 0):
         return "paid_fulfillment"
@@ -818,7 +838,10 @@ def _bottleneck(snapshot: dict[str, Any]) -> str:
         return "checkout_to_payment"
     if int(intent.get("checkout_clicks") or 0) > int(money.get("payments") or 0):
         return "checkout_to_payment"
-    if int(outreach.get("replies") or 0) > int(money.get("payments") or 0):
+    if (
+        int(outreach.get("replies") or 0) > int(money.get("payments") or 0)
+        and not active_sample_complete_without_signal
+    ):
         return "reply_to_payment"
     if (
         int(outreach.get("send_failures_today") or 0) > 0
@@ -838,6 +861,8 @@ def _bottleneck(snapshot: dict[str, Any]) -> str:
         return "page_to_lead"
     if int(intent.get("page_views") or 0) < 20 and int(outreach.get("sends") or 0) < 20:
         return "traffic"
+    if active_sample_complete_without_signal:
+        return "outbound_targeting_or_copy"
     if int(outreach.get("sends") or 0) >= _experiment_failure_sample() and int(outreach.get("replies") or 0) == 0:
         return "outbound_targeting_or_copy"
     if int(outreach.get("due_now") or 0) == 0 and int(outreach.get("cap_remaining") or 0) > 0:

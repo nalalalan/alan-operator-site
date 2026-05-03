@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import httpx
@@ -105,6 +105,29 @@ def _week_start(value: datetime | None = None) -> datetime:
     value = value or _now()
     start = value - timedelta(days=value.weekday())
     return start.replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+def _parse_datetime(value: Any) -> datetime | None:
+    if not value:
+        return None
+    raw = str(value).strip()
+    if not raw:
+        return None
+    try:
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except Exception:
+        return None
+    if parsed.tzinfo is not None:
+        parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
+    return parsed
+
+
+def _experiment_start(plan: dict[str, Any], default: datetime) -> tuple[datetime, str]:
+    for key in ("week_start", "week_start_date", "created_at", "logged_at"):
+        parsed = _parse_datetime(plan.get(key))
+        if parsed is not None:
+            return parsed, key
+    return default, "rolling_7_day_fallback"
 
 
 def _safe_json(raw: str | None) -> dict[str, Any]:
@@ -631,6 +654,7 @@ def maybe_run_weekly_performance_review() -> dict[str, Any]:
 
 
 def active_relay_experiment() -> dict[str, Any]:
+    week_start = _week_start()
     forced = os.getenv("RELAY_OUTREACH_VARIANT", "").strip()
     if forced in EXPERIMENTS:
         experiment = EXPERIMENTS[forced]
@@ -640,9 +664,10 @@ def active_relay_experiment() -> dict[str, Any]:
             "hypothesis": experiment["hypothesis"],
             "query_rotation": experiment["query_rotation"],
             "source": "env",
+            "week_start": week_start.isoformat(),
+            "week_start_date": week_start.date().isoformat(),
         }
 
-    week_start = _week_start()
     with _session() as session:
         plan = _current_week_plan_payload(session, week_start) or _latest_plan_payload(session)
 
@@ -657,6 +682,8 @@ def active_relay_experiment() -> dict[str, Any]:
         "hypothesis": experiment["hypothesis"],
         "query_rotation": experiment["query_rotation"],
         "source": "default",
+        "week_start": week_start.isoformat(),
+        "week_start_date": week_start.date().isoformat(),
     }
 
 
@@ -696,10 +723,11 @@ def relay_performance_status() -> dict[str, Any]:
         prospect_health = _prospect_health(session)
         active_plan = active_relay_experiment()
         active_variant = str(active_plan.get("experiment_variant") or DEFAULT_EXPERIMENT_VARIANT)
+        active_start, active_start_basis = _experiment_start(active_plan, now - timedelta(days=7))
         active_signal = _variant_metrics_for_window(
             session,
             variant=active_variant,
-            start=now - timedelta(days=7),
+            start=active_start,
             end=now,
         )
 
@@ -717,6 +745,11 @@ def relay_performance_status() -> dict[str, Any]:
         "prospect_health": prospect_health,
         "active_experiment": active_plan,
         "active_experiment_signal": active_signal,
+        "active_experiment_signal_window": {
+            "start": active_start.isoformat(),
+            "end": now.isoformat(),
+            "basis": active_start_basis,
+        },
         "latest_review": latest_review,
         "latest_research_input": research,
         "available_experiments": EXPERIMENTS,
