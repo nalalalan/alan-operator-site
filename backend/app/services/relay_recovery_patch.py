@@ -1556,7 +1556,30 @@ def _money_loop_interval_seconds() -> int:
     return max(int(os.getenv("AO_RELAY_MONEY_LOOP_INTERVAL_SECONDS", "900") or 900), 120)
 
 
+def _money_loop_success_sleep(result: dict[str, Any] | None, default_interval: int) -> tuple[int, str] | None:
+    if not isinstance(result, dict):
+        return None
+    success_after = (
+        result.get("success_control_after_outreach")
+        if isinstance(result.get("success_control_after_outreach"), dict)
+        else {}
+    )
+    success_before = result.get("success_control") if isinstance(result.get("success_control"), dict) else {}
+    bottleneck = str(success_after.get("bottleneck") or success_before.get("bottleneck") or "").strip()
+    if bottleneck == "paid_fulfillment":
+        return min(default_interval, 120), "paid_fulfillment_watch"
+    if bottleneck in {"checkout_to_payment", "reply_to_payment"}:
+        return min(default_interval, 120), "buyer_signal_watch"
+    if bottleneck in {"messy_notes_to_payment", "sample_to_notes"}:
+        return min(default_interval, 300), "conversion_followup_due"
+    return None
+
+
 def _money_loop_sleep_seconds(result: dict[str, Any] | None, default_interval: int) -> tuple[int, str]:
+    success_sleep = _money_loop_success_sleep(result, default_interval)
+    if success_sleep is not None:
+        return success_sleep
+
     status_after = (result or {}).get("status_after")
     if not isinstance(status_after, dict):
         return default_interval, "default_interval"
