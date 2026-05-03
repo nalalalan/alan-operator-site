@@ -453,6 +453,25 @@ def _outreach_sent_count(result: Any) -> int:
     return max(sent, 0)
 
 
+def _success_control_requires_status_refresh(result: Any) -> tuple[bool, str]:
+    if not isinstance(result, dict):
+        return False, ""
+    actions = result.get("actions") if isinstance(result.get("actions"), dict) else {}
+    experiment_review = (
+        actions.get("outbound_experiment_review")
+        if isinstance(actions.get("outbound_experiment_review"), dict)
+        else {}
+    )
+    if experiment_review.get("created"):
+        return True, "outbound_experiment_plan_created"
+
+    bottleneck_changed = bool(result.get("bottleneck_changed"))
+    after_bottleneck = str(result.get("after_bottleneck") or "").strip()
+    if bottleneck_changed and after_bottleneck in {"active_experiment_refill", "active_experiment_sample"}:
+        return True, f"success_bottleneck_changed_to_{after_bottleneck}"
+    return False, ""
+
+
 def _refill_capacity_count(status: dict[str, Any]) -> int:
     if status.get("active_experiment_needs_sample"):
         return int(status.get("active_experiment_new_due_count") or 0)
@@ -1234,6 +1253,20 @@ async def _relay_money_loop_tick(
             }
 
     success_control = await _run_success_control_tick_for_phase("before_outreach")
+    success_control_status_refreshed, success_control_refresh_reason = _success_control_requires_status_refresh(
+        success_control
+    )
+    if success_control_status_refreshed:
+        status = await asyncio.to_thread(outreach.outreach_status)
+        direct_due = int(status.get("direct_due_count") or 0)
+        active_experiment_needs_sample = bool(status.get("active_experiment_needs_sample"))
+        active_sample_sends_before = int(status.get("active_experiment_sends") or 0)
+        active_sample_target_before = int(status.get("active_experiment_sample_target") or 0)
+        active_experiment_new_due = int(status.get("active_experiment_new_due_count") or 0)
+        refill_due = active_experiment_new_due if active_experiment_needs_sample else direct_due
+        sendable_due, sendable_due_mode = _sendable_due_for_current_goal(status)
+        cap_remaining = int(status.get("cap_remaining") or 0)
+        send_window_open = bool(status.get("send_window_is_open"))
 
     outreach_phase = "after_refill"
     send_first = send_live and send_window_open and sendable_due > 0 and cap_remaining > 0
@@ -1507,6 +1540,8 @@ async def _relay_money_loop_tick(
         "active_sample_understocked": active_sample_understocked,
         "refill_timeout_backoff": backoff_status,
         "send_window_ready_without_refill": send_window_ready,
+        "success_control_status_refreshed": success_control_status_refreshed,
+        "success_control_refresh_reason": success_control_refresh_reason,
         "send_window_open_before": send_window_open,
         "outreach_phase": outreach_phase,
         "cap_remaining_before": cap_remaining,
@@ -1607,6 +1642,12 @@ def _money_loop_success_sleep(result: dict[str, Any] | None, default_interval: i
         sent_count = 0
     if sent_count > 0:
         return min(default_interval, 300), "conversion_action_watch"
+    for success_result in (success_after, success_before):
+        refreshed, refresh_reason = _success_control_requires_status_refresh(success_result)
+        if refreshed:
+            if refresh_reason == "outbound_experiment_plan_created":
+                return min(default_interval, 300), "experiment_rotation_watch"
+            return min(default_interval, 300), "success_control_refresh_watch"
     return None
 
 

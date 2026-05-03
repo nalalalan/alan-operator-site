@@ -1153,6 +1153,8 @@ def _compact_money_loop_payload(payload: dict[str, Any] | None) -> dict[str, Any
         "send_window_ready_active_buffer_target": send_window_ready.get("active_sample_buffer_target"),
         "send_window_ready_active_sample_remaining": send_window_ready.get("active_experiment_sample_remaining"),
         "send_window_ready_next_open_local": send_window_ready.get("send_window_next_open_local"),
+        "success_control_status_refreshed": payload.get("success_control_status_refreshed"),
+        "success_control_refresh_reason": payload.get("success_control_refresh_reason"),
         "direct_due_before": payload.get("direct_due_before"),
         "send_window_open_before": payload.get("send_window_open_before"),
         "outreach_phase": payload.get("outreach_phase"),
