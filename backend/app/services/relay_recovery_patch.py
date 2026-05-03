@@ -87,6 +87,8 @@ _money_loop_state: dict[str, Any] = {
     "last_manual_kick_at": "",
     "last_manual_result": None,
     "last_error": "",
+    "next_sleep_seconds": None,
+    "next_wake_reason": "",
     "ticks": 0,
 }
 
@@ -277,6 +279,7 @@ def _compact_status_for_loop(status: dict[str, Any]) -> dict[str, Any]:
         "send_window_is_open",
         "send_window_reason",
         "send_window_next_open_local",
+        "send_window_seconds_until_open",
         "send_window_business_days_only",
         "direct_inbox_count",
         "generic_inbox_count",
@@ -981,11 +984,38 @@ async def _relay_money_loop_tick(
     return result
 
 
+def _money_loop_interval_seconds() -> int:
+    return max(int(os.getenv("AO_RELAY_MONEY_LOOP_INTERVAL_SECONDS", "900") or 900), 120)
+
+
+def _money_loop_sleep_seconds(result: dict[str, Any] | None, default_interval: int) -> tuple[int, str]:
+    status_after = (result or {}).get("status_after")
+    if not isinstance(status_after, dict):
+        return default_interval, "default_interval"
+
+    direct_due = int(status_after.get("direct_due_count") or 0)
+    cap_remaining = int(status_after.get("cap_remaining") or 0)
+    window_open = bool(status_after.get("send_window_is_open"))
+    if window_open and direct_due > 0 and cap_remaining > 0:
+        return min(default_interval, 120), "active_send_window"
+
+    try:
+        seconds_until_open = int(status_after.get("send_window_seconds_until_open") or 0)
+    except Exception:
+        seconds_until_open = 0
+    if 0 < seconds_until_open <= default_interval:
+        return max(min(seconds_until_open + 5, default_interval), 5), "align_with_send_window"
+
+    return default_interval, "default_interval"
+
+
 async def _relay_money_loop() -> None:
-    interval = max(int(os.getenv("AO_RELAY_MONEY_LOOP_INTERVAL_SECONDS", "900") or 900), 120)
+    interval = _money_loop_interval_seconds()
     startup_delay = max(int(os.getenv("AO_RELAY_MONEY_LOOP_STARTUP_DELAY_SECONDS", "30") or 30), 5)
     await asyncio.sleep(startup_delay)
     while True:
+        sleep_seconds = interval
+        wake_reason = "default_interval"
         try:
             _money_loop_state["running"] = True
             _money_loop_state["enabled"] = True
@@ -993,14 +1023,17 @@ async def _relay_money_loop() -> None:
             _money_loop_state["last_result"] = await _relay_money_loop_tick()
             _money_loop_state["last_error"] = ""
             _money_loop_state["ticks"] = int(_money_loop_state.get("ticks") or 0) + 1
+            sleep_seconds, wake_reason = _money_loop_sleep_seconds(_money_loop_state["last_result"], interval)
         except asyncio.CancelledError:
             raise
         except Exception as exc:
             _money_loop_state["last_error"] = str(exc)
         finally:
             _money_loop_state["running"] = False
+            _money_loop_state["next_sleep_seconds"] = sleep_seconds
+            _money_loop_state["next_wake_reason"] = wake_reason
 
-        await asyncio.sleep(interval)
+        await asyncio.sleep(sleep_seconds)
 
 
 def start_relay_money_loop() -> None:
