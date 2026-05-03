@@ -438,6 +438,30 @@ def _compact_money_loop_payload(payload: dict[str, Any] | None) -> dict[str, Any
     }
 
 
+def _current_money_loop_runtime() -> dict[str, Any]:
+    try:
+        from app.services import relay_recovery_patch
+
+        state = dict(getattr(relay_recovery_patch, "_money_loop_state", {}) or {})
+    except Exception as exc:
+        return {"status": "error", "summary": f"money_loop_state_unavailable:{type(exc).__name__}"}
+
+    last_result = state.get("last_result") if isinstance(state.get("last_result"), dict) else None
+    manual_result = state.get("last_manual_result") if isinstance(state.get("last_manual_result"), dict) else None
+    return {
+        "enabled": bool(state.get("enabled")),
+        "running": bool(state.get("running")),
+        "last_tick_at": state.get("last_tick_at") or "",
+        "last_error": state.get("last_error") or "",
+        "next_sleep_seconds": state.get("next_sleep_seconds"),
+        "next_wake_reason": state.get("next_wake_reason") or "",
+        "ticks": int(state.get("ticks") or 0),
+        "last_manual_kick_at": state.get("last_manual_kick_at") or "",
+        "last_result": _compact_money_loop_payload(last_result),
+        "last_manual_result": _compact_money_loop_payload(manual_result),
+    }
+
+
 def _latest_production_transition(db, *event_terms: str) -> dict[str, Any] | None:
     query = db.query(ProductionTransition)
     for term in event_terms:
@@ -913,6 +937,7 @@ def relay_ops_check(days: int = 14) -> dict[str, Any]:
                 "open_exception_count": int(open_exception_count),
             },
             "recent": recent,
+            "money_loop_runtime": _current_money_loop_runtime(),
         }
         try:
             from app.services.relay_performance import relay_performance_status
@@ -932,19 +957,19 @@ def relay_ops_check(days: int = 14) -> dict[str, Any]:
                 },
                 "active_experiment_signal": performance.get("active_experiment_signal") or {},
                 "rolling_7_day": performance.get("rolling_7_day") or {},
-            "active_experiment_queue": {
-                "active_experiment_variant": outreach.get("active_experiment_variant"),
-                "active_experiment_sends": outreach.get("active_experiment_sends"),
-                "active_experiment_sample_target": outreach.get("active_experiment_sample_target"),
-                "active_experiment_needs_sample": outreach.get("active_experiment_needs_sample"),
-                "active_experiment_new_due_count": outreach.get("active_experiment_new_due_count"),
-                "active_experiment_direct_new_due_count": outreach.get("active_experiment_direct_new_due_count"),
-                "active_experiment_generic_new_due_count": outreach.get("active_experiment_generic_new_due_count"),
-                "active_experiment_allowed_generic_new_due_count": outreach.get("active_experiment_allowed_generic_new_due_count"),
-                "active_experiment_generic_sample_daily_cap": outreach.get("active_experiment_generic_sample_daily_cap"),
-                "direct_due_count": outreach.get("direct_due_count"),
-                "cap_remaining": outreach.get("cap_remaining"),
-                "effective_daily_cap": outreach.get("effective_daily_cap"),
+                "active_experiment_queue": {
+                    "active_experiment_variant": outreach.get("active_experiment_variant"),
+                    "active_experiment_sends": outreach.get("active_experiment_sends"),
+                    "active_experiment_sample_target": outreach.get("active_experiment_sample_target"),
+                    "active_experiment_needs_sample": outreach.get("active_experiment_needs_sample"),
+                    "active_experiment_new_due_count": outreach.get("active_experiment_new_due_count"),
+                    "active_experiment_direct_new_due_count": outreach.get("active_experiment_direct_new_due_count"),
+                    "active_experiment_generic_new_due_count": outreach.get("active_experiment_generic_new_due_count"),
+                    "active_experiment_allowed_generic_new_due_count": outreach.get("active_experiment_allowed_generic_new_due_count"),
+                    "active_experiment_generic_sample_daily_cap": outreach.get("active_experiment_generic_sample_daily_cap"),
+                    "direct_due_count": outreach.get("direct_due_count"),
+                    "cap_remaining": outreach.get("cap_remaining"),
+                    "effective_daily_cap": outreach.get("effective_daily_cap"),
                     "send_window_is_open": outreach.get("send_window_is_open"),
                     "send_window_reason": outreach.get("send_window_reason"),
                     "send_window_next_open_local": outreach.get("send_window_next_open_local"),
