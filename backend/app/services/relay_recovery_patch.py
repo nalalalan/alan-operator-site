@@ -624,15 +624,30 @@ async def _relay_money_loop_tick(
 
     if send_live:
         outreach_result = _compact_outreach_result(await asyncio.to_thread(outreach.run_custom_outreach_cycle))
+        try:
+            from app.services.relay_success_controller import run_relay_success_control_tick
+
+            success_control = await asyncio.to_thread(run_relay_success_control_tick)
+        except Exception as exc:
+            success_control = {
+                "status": "error",
+                "reason": "success_control_failed",
+                "error": str(exc),
+            }
     else:
         outreach_result = {
             "status": "skipped",
             "reason": "send_live_false",
             "snapshot": _compact_status_for_loop(outreach.outreach_status()),
         }
+        success_control = {
+            "status": "skipped",
+            "reason": "send_live_false",
+        }
     return {
         "refill_result": refill_result,
         "outreach_result": outreach_result,
+        "success_control": success_control,
         "direct_due_before": direct_due,
         "cap_remaining_before": cap_remaining,
         "force_refill": force_refill,
