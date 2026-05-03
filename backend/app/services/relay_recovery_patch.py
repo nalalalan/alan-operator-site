@@ -919,7 +919,7 @@ async def money_kick(
     _: None = Depends(require_relay_admin),
 ) -> dict[str, Any]:
     body = body or {}
-    result = await _relay_money_loop_tick(
+    result = await _relay_money_loop_tick_with_timeout(
         force_refill=_body_bool(body, "force_refill", True),
         refill_query=str(body.get("q_keywords") or "").strip() or None,
         refill_per_page=_body_int(
@@ -1188,6 +1188,51 @@ async def _relay_money_loop_tick(
     return result
 
 
+def _money_loop_tick_timeout_seconds() -> float:
+    return _env_float("AO_RELAY_MONEY_LOOP_TICK_TIMEOUT_SECONDS", 300.0, minimum=30.0)
+
+
+async def _relay_money_loop_tick_with_timeout(**kwargs: Any) -> dict[str, Any]:
+    timeout_seconds = _money_loop_tick_timeout_seconds()
+    try:
+        return await asyncio.wait_for(_relay_money_loop_tick(**kwargs), timeout=timeout_seconds)
+    except asyncio.TimeoutError:
+        import app.services.custom_outreach as outreach
+
+        try:
+            status_after = _compact_status_for_loop(await asyncio.to_thread(outreach.outreach_status))
+        except Exception as exc:
+            status_after = {
+                "status": "error",
+                "reason": "status_after_timeout_unavailable",
+                "error_type": type(exc).__name__,
+                "error": str(exc),
+            }
+        result = {
+            "refill_result": {
+                "status": "error",
+                "reason": "money_loop_tick_timeout",
+                "timeout_seconds": timeout_seconds,
+            },
+            "outreach_result": {
+                "status": "skipped",
+                "reason": "money_loop_tick_timeout",
+            },
+            "post_refill_outreach_result": None,
+            "success_control": {
+                "status": "unknown",
+                "reason": "money_loop_tick_timeout",
+            },
+            "success_control_phase": "unknown",
+            "outreach_phase": "timeout",
+            "force_refill": bool(kwargs.get("force_refill", False)),
+            "send_live": bool(kwargs.get("send_live", True)),
+            "status_after": status_after,
+        }
+        _log_money_loop_tick(result)
+        return result
+
+
 def _money_loop_interval_seconds() -> int:
     return max(int(os.getenv("AO_RELAY_MONEY_LOOP_INTERVAL_SECONDS", "900") or 900), 120)
 
@@ -1224,8 +1269,13 @@ async def _relay_money_loop() -> None:
             _money_loop_state["running"] = True
             _money_loop_state["enabled"] = True
             _money_loop_state["last_tick_at"] = datetime.now(timezone.utc).isoformat()
-            _money_loop_state["last_result"] = await _relay_money_loop_tick()
-            _money_loop_state["last_error"] = ""
+            _money_loop_state["last_result"] = await _relay_money_loop_tick_with_timeout()
+            refill_result = _money_loop_state["last_result"].get("refill_result")
+            timeout_error = (
+                isinstance(refill_result, dict)
+                and str(refill_result.get("reason") or "") == "money_loop_tick_timeout"
+            )
+            _money_loop_state["last_error"] = "money_loop_tick_timeout" if timeout_error else ""
             _money_loop_state["ticks"] = int(_money_loop_state.get("ticks") or 0) + 1
             sleep_seconds, wake_reason = _money_loop_sleep_seconds(_money_loop_state["last_result"], interval)
         except asyncio.CancelledError:
