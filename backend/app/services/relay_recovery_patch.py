@@ -398,8 +398,11 @@ def _compact_status_for_loop(status: dict[str, Any]) -> dict[str, Any]:
         "daily_send_cap",
         "send_window_is_open",
         "send_window_reason",
+        "send_window_start_local",
+        "send_window_end_local",
         "send_window_next_open_local",
         "send_window_seconds_until_open",
+        "send_window_seconds_open",
         "send_window_business_days_only",
         "direct_inbox_count",
         "generic_inbox_count",
@@ -1627,6 +1630,13 @@ def _money_loop_success_sleep(result: dict[str, Any] | None, default_interval: i
         return min(default_interval, 120), "paid_fulfillment_watch"
     if bottleneck in {"checkout_to_payment", "reply_to_payment"}:
         return min(default_interval, 120), "buyer_signal_watch"
+    if bottleneck in {
+        "outbound_send_failed",
+        "outbound_send_stalled",
+        "outbound_window_missed",
+        "outbound_window_underfilled",
+    }:
+        return min(default_interval, 120), "execution_failure_watch"
     if bottleneck in {"messy_notes_to_payment", "sample_to_notes"}:
         return min(default_interval, 300), "conversion_followup_due"
     conversion_actions = (

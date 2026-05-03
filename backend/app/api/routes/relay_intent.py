@@ -1196,6 +1196,12 @@ def _compact_money_loop_payload(payload: dict[str, Any] | None) -> dict[str, Any
             "active_experiment_generic_sample_daily_cap": status_after.get("active_experiment_generic_sample_daily_cap"),
             "direct_due_count": status_after.get("direct_due_count"),
             "cap_remaining": status_after.get("cap_remaining"),
+            "send_window_reason": status_after.get("send_window_reason"),
+            "send_window_start_local": status_after.get("send_window_start_local"),
+            "send_window_end_local": status_after.get("send_window_end_local"),
+            "send_window_next_open_local": status_after.get("send_window_next_open_local"),
+            "send_window_seconds_until_open": status_after.get("send_window_seconds_until_open"),
+            "send_window_seconds_open": status_after.get("send_window_seconds_open"),
             "next_money_move": status_after.get("next_money_move"),
         },
     }
