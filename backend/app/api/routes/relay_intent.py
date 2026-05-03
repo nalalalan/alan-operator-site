@@ -65,6 +65,15 @@ def _json(data: dict[str, Any] | None) -> str | None:
     return json.dumps(data, ensure_ascii=False, sort_keys=True)[:8000]
 
 
+def _internal_emails() -> set[str]:
+    configured = os.getenv("RELAY_INTERNAL_EMAILS", "pham.alann@gmail.com").split(",")
+    return {email.strip().lower() for email in configured if email.strip()}
+
+
+def _is_internal_email(email: str | None) -> bool:
+    return (email or "").strip().lower() in _internal_emails()
+
+
 def _sample_email_html(to_email: str) -> str:
     sample_url = _relay_url("/sample.pdf")
     relay_url = _relay_url()
@@ -482,8 +491,11 @@ def record_relay_lead(payload: RelayIntentLeadIn, request: Request) -> dict[str,
         source_lower = source.lower()
         acquisition_prospect = (
             _upsert_relay_acquisition_prospect(db, lead, payload, email, source, score)
-            if any(term in source_lower for term in ["messy_notes", "sample", "checkout_intent"])
-            else {"status": "skipped", "reason": "not an inbound buyer signal"}
+            if any(term in source_lower for term in ["messy_notes", "sample", "checkout_intent"]) and not _is_internal_email(email)
+            else {
+                "status": "skipped",
+                "reason": "internal test email" if _is_internal_email(email) else "not an inbound buyer signal",
+            }
         )
         db.commit()
 
@@ -680,9 +692,49 @@ def relay_ops_check(days: int = 14) -> dict[str, Any]:
             .all()
         )
         intent_counts = {name: int(count) for name, count in event_counts}
+        internal_sessions = [
+            session_id
+            for (session_id,) in (
+                db.query(RelayIntentLead.session_id)
+                .filter(RelayIntentLead.created_at >= since)
+                .filter(RelayIntentLead.email.in_(_internal_emails()))
+                .all()
+            )
+            if session_id
+        ]
+        real_event_query = (
+            db.query(RelayIntentEvent.event_type, func.count(RelayIntentEvent.id))
+            .filter(RelayIntentEvent.created_at >= since)
+        )
+        if internal_sessions:
+            real_event_query = real_event_query.filter(RelayIntentEvent.session_id.notin_(internal_sessions))
+        real_event_counts = real_event_query.group_by(RelayIntentEvent.event_type).all()
+        real_intent_counts = {name: int(count) for name, count in real_event_counts}
 
         lead_count = db.query(func.count(RelayIntentLead.id)).filter(RelayIntentLead.created_at >= since).scalar() or 0
         hot_lead_count = db.query(func.count(RelayIntentLead.id)).filter(RelayIntentLead.created_at >= since).filter(RelayIntentLead.score >= 50).scalar() or 0
+        real_lead_count = (
+            db.query(func.count(RelayIntentLead.id))
+            .filter(RelayIntentLead.created_at >= since)
+            .filter(RelayIntentLead.email.notin_(_internal_emails()))
+            .scalar()
+            or 0
+        )
+        real_hot_lead_count = (
+            db.query(func.count(RelayIntentLead.id))
+            .filter(RelayIntentLead.created_at >= since)
+            .filter(RelayIntentLead.email.notin_(_internal_emails()))
+            .filter(RelayIntentLead.score >= 50)
+            .scalar()
+            or 0
+        )
+        internal_test_lead_count = (
+            db.query(func.count(RelayIntentLead.id))
+            .filter(RelayIntentLead.created_at >= since)
+            .filter(RelayIntentLead.email.in_(_internal_emails()))
+            .scalar()
+            or 0
+        )
 
         prospect_counts = (
             db.query(AcquisitionProspect.status, func.count(AcquisitionProspect.id))
@@ -725,6 +777,10 @@ def relay_ops_check(days: int = 14) -> dict[str, Any]:
                 "event_counts": intent_counts,
                 "lead_count": int(lead_count),
                 "hot_lead_count": int(hot_lead_count),
+                "real_event_counts": real_intent_counts,
+                "real_lead_count": int(real_lead_count),
+                "real_hot_lead_count": int(real_hot_lead_count),
+                "internal_test_lead_count": int(internal_test_lead_count),
             },
             "acquisition": {
                 "status_counts": {status or "unknown": int(count) for status, count in prospect_counts},

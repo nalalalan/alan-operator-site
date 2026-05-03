@@ -41,6 +41,27 @@ def _safe_json(raw: str | None) -> dict[str, Any]:
         return {}
 
 
+def _internal_emails() -> set[str]:
+    configured = os.getenv("RELAY_INTERNAL_EMAILS", "pham.alann@gmail.com").split(",")
+    return {email.strip().lower() for email in configured if email.strip()}
+
+
+def _is_internal_email(email: str | None) -> bool:
+    return (email or "").strip().lower() in _internal_emails()
+
+
+def _internal_session_ids(session: Session, *, since: datetime) -> set[str]:
+    return {
+        session_id
+        for session_id in session.execute(
+            select(RelayIntentLead.session_id)
+            .where(RelayIntentLead.created_at >= since)
+            .where(RelayIntentLead.email.in_(_internal_emails()))
+        ).scalars().all()
+        if session_id
+    }
+
+
 def _event_count(session: Session, event_type: str, *, since: datetime, like: bool = False) -> int:
     stmt = select(func.count(AcquisitionEvent.id))
     stmt = stmt.where(AcquisitionEvent.event_type.like(event_type) if like else AcquisitionEvent.event_type == event_type)
@@ -48,19 +69,26 @@ def _event_count(session: Session, event_type: str, *, since: datetime, like: bo
     return int(session.execute(stmt).scalar() or 0)
 
 
-def _intent_count(session: Session, event_type: str, *, since: datetime) -> int:
+def _intent_count(session: Session, event_type: str, *, since: datetime, exclude_sessions: set[str] | None = None) -> int:
+    stmt = (
+        select(func.count(RelayIntentEvent.id))
+        .where(RelayIntentEvent.event_type == event_type)
+        .where(RelayIntentEvent.created_at >= since)
+    )
+    if exclude_sessions:
+        stmt = stmt.where(RelayIntentEvent.session_id.not_in(exclude_sessions))
     return int(
-        session.execute(
-            select(func.count(RelayIntentEvent.id))
-            .where(RelayIntentEvent.event_type == event_type)
-            .where(RelayIntentEvent.created_at >= since)
-        ).scalar()
+        session.execute(stmt).scalar()
         or 0
     )
 
 
 def _lead_count(session: Session, source_term: str | None, *, since: datetime) -> int:
-    stmt = select(func.count(RelayIntentLead.id)).where(RelayIntentLead.created_at >= since)
+    stmt = (
+        select(func.count(RelayIntentLead.id))
+        .where(RelayIntentLead.created_at >= since)
+        .where(RelayIntentLead.email.not_in(_internal_emails()))
+    )
     if source_term:
         stmt = stmt.where(RelayIntentLead.source.ilike(f"%{source_term}%"))
     return int(session.execute(stmt).scalar() or 0)
@@ -88,7 +116,7 @@ def _stripe_amount_cents(payload: dict[str, Any]) -> int:
 
 def _paid_for_email(session: Session, email: str) -> bool:
     email = (email or "").strip().lower()
-    if not email:
+    if not email or _is_internal_email(email):
         return False
     prospect = session.execute(
         select(AcquisitionProspect)
@@ -123,7 +151,7 @@ def _money_metrics(session: Session, *, since: datetime) -> dict[str, Any]:
     gross_cents = 0
     for event in events:
         payload = _safe_json(event.payload_json)
-        if _stripe_email(payload) == "pham.alann@gmail.com":
+        if _is_internal_email(_stripe_email(payload)):
             continue
         payments += 1
         gross_cents += _stripe_amount_cents(payload)
@@ -157,6 +185,8 @@ def _due_followup_counts(session: Session, *, now: datetime) -> dict[str, int]:
         .limit(100)
     ).scalars().all()
     for lead in messy_leads:
+        if _is_internal_email(lead.email):
+            continue
         if _paid_for_email(session, lead.email):
             continue
         exists = session.execute(
@@ -198,7 +228,7 @@ def _due_followup_counts(session: Session, *, now: datetime) -> dict[str, int]:
         lead = session.execute(
             select(RelayIntentLead).where(RelayIntentLead.id == lead_id_int).limit(1)
         ).scalar_one_or_none()
-        if lead is None or not lead.email or _paid_for_email(session, lead.email):
+        if lead is None or not lead.email or _is_internal_email(lead.email) or _paid_for_email(session, lead.email):
             continue
         messy_second_due += 1
 
@@ -209,6 +239,8 @@ def _due_followup_counts(session: Session, *, now: datetime) -> dict[str, int]:
         .limit(100)
     ).scalars().all()
     for lead in sample_leads:
+        if _is_internal_email(lead.email):
+            continue
         if _paid_for_email(session, lead.email):
             continue
         exists = session.execute(
@@ -253,7 +285,7 @@ def _due_followup_counts(session: Session, *, now: datetime) -> dict[str, int]:
         if lead is None or not lead.email:
             continue
         email = (lead.email or "").strip().lower()
-        if _paid_for_email(session, email):
+        if _is_internal_email(email) or _paid_for_email(session, email):
             continue
         messy_notes = session.execute(
             select(RelayIntentLead.id)
@@ -291,7 +323,7 @@ def _due_followup_counts(session: Session, *, now: datetime) -> dict[str, int]:
             .order_by(RelayIntentLead.created_at.desc())
             .limit(1)
         ).scalar_one_or_none()
-        if lead is None or not lead.email or _paid_for_email(session, lead.email):
+        if lead is None or not lead.email or _is_internal_email(lead.email) or _paid_for_email(session, lead.email):
             continue
         checkout_due += 1
 
@@ -314,7 +346,7 @@ def _due_followup_counts(session: Session, *, now: datetime) -> dict[str, int]:
         ).scalar_one_or_none()
         if exists is not None:
             continue
-        if not lead.email or _paid_for_email(session, lead.email):
+        if not lead.email or _is_internal_email(lead.email) or _paid_for_email(session, lead.email):
             continue
         checkout_due += 1
 
@@ -347,7 +379,7 @@ def _due_followup_counts(session: Session, *, now: datetime) -> dict[str, int]:
             .order_by(RelayIntentLead.created_at.desc())
             .limit(1)
         ).scalar_one_or_none()
-        if lead is None or not lead.email or _paid_for_email(session, lead.email):
+        if lead is None or not lead.email or _is_internal_email(lead.email) or _paid_for_email(session, lead.email):
             continue
         checkout_second_due += 1
 
@@ -380,9 +412,10 @@ def relay_success_snapshot(days: int = 7) -> dict[str, Any]:
     with _session() as session:
         outreach = outreach_status()
         money = _money_metrics(session, since=since)
-        page_views = _intent_count(session, "page_view", since=since)
-        checkout_clicks = _intent_count(session, "checkout_click", since=since)
-        notes_clicks = _intent_count(session, "note_intake_click", since=since)
+        internal_sessions = _internal_session_ids(session, since=since)
+        page_views = _intent_count(session, "page_view", since=since, exclude_sessions=internal_sessions)
+        checkout_clicks = _intent_count(session, "checkout_click", since=since, exclude_sessions=internal_sessions)
+        notes_clicks = _intent_count(session, "note_intake_click", since=since, exclude_sessions=internal_sessions)
         lead_count = _lead_count(session, None, since=since)
         messy_notes = _lead_count(session, "messy_notes", since=since)
         sample_requests = _lead_count(session, "sample", since=since)

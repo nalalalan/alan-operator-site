@@ -21,6 +21,15 @@ def _session() -> Session:
     return SessionLocal()
 
 
+def _internal_emails() -> set[str]:
+    configured = os.getenv("RELAY_INTERNAL_EMAILS", "pham.alann@gmail.com").split(",")
+    return {email.strip().lower() for email in configured if email.strip()}
+
+
+def _is_internal_email(email: str | None) -> bool:
+    return (email or "").strip().lower() in _internal_emails()
+
+
 def _intake_url() -> str:
     return (
         settings.client_intake_destination
@@ -53,6 +62,8 @@ def _find_prospect_by_email(session: Session, email: str) -> AcquisitionProspect
 
 
 def _paid_for_email(session: Session, email: str) -> bool:
+    if _is_internal_email(email):
+        return False
     prospect = _find_prospect_by_email(session, email)
     if prospect is not None and prospect.stripe_status == "paid":
         return True
@@ -471,6 +482,9 @@ def run_messy_notes_checkout_followup_sweep(hours: int = 2) -> dict[str, Any]:
             if not email:
                 skipped += 1
                 continue
+            if _is_internal_email(email):
+                skipped += 1
+                continue
             if _paid_for_email(session, email):
                 skipped += 1
                 continue
@@ -555,6 +569,9 @@ def run_messy_notes_second_followup_sweep(hours: int = 24) -> dict[str, Any]:
             if lead is None or not lead.email:
                 skipped += 1
                 continue
+            if _is_internal_email(lead.email):
+                skipped += 1
+                continue
             if _paid_for_email(session, lead.email):
                 skipped += 1
                 continue
@@ -612,6 +629,9 @@ def run_sample_request_notes_followup_sweep(hours: int = 24) -> dict[str, Any]:
             email = (lead.email or "").strip().lower()
             external_id = f"relay-lead:{lead.id}"
             if not email:
+                skipped += 1
+                continue
+            if _is_internal_email(email):
                 skipped += 1
                 continue
             if _paid_for_email(session, email):
@@ -707,6 +727,9 @@ def run_sample_request_second_followup_sweep(hours: int = 72) -> dict[str, Any]:
                 skipped += 1
                 continue
             email = (lead.email or "").strip().lower()
+            if _is_internal_email(email):
+                skipped += 1
+                continue
             if _paid_for_email(session, email):
                 skipped += 1
                 continue
@@ -795,6 +818,9 @@ def run_checkout_intent_followup_sweep(hours: int = 1) -> dict[str, Any]:
             if lead is None or not lead.email:
                 skipped += 1
                 continue
+            if _is_internal_email(lead.email):
+                skipped += 1
+                continue
             if _paid_for_email(session, lead.email):
                 skipped += 1
                 continue
@@ -818,7 +844,7 @@ def run_checkout_intent_followup_sweep(hours: int = 1) -> dict[str, Any]:
             if _event_exists(session, external_id, "autopilot_checkout_intent_followup_sent"):
                 skipped += 1
                 continue
-            if not lead.email or _paid_for_email(session, lead.email):
+            if not lead.email or _is_internal_email(lead.email) or _paid_for_email(session, lead.email):
                 skipped += 1
                 continue
             candidates.append((None, lead))
@@ -895,6 +921,9 @@ def run_checkout_intent_second_followup_sweep(hours: int = 24) -> dict[str, Any]
 
             lead = _latest_lead_for_session(session, session_id)
             if lead is None or not lead.email:
+                skipped += 1
+                continue
+            if _is_internal_email(lead.email):
                 skipped += 1
                 continue
             if _paid_for_email(session, lead.email):
