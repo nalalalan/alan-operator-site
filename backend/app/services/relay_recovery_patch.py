@@ -448,6 +448,12 @@ def _refill_capacity_mode(status: dict[str, Any]) -> str:
     return "direct_due"
 
 
+def _sendable_due_for_current_goal(status: dict[str, Any]) -> tuple[int, str]:
+    due = _refill_capacity_count(status)
+    mode = _refill_capacity_mode(status)
+    return max(due, 0), mode
+
+
 def _refill_capacity_fields(
     before_status: dict[str, Any],
     after_status: dict[str, Any],
@@ -1178,6 +1184,7 @@ async def _relay_money_loop_tick(
     active_experiment_needs_sample = bool(status.get("active_experiment_needs_sample"))
     active_experiment_new_due = int(status.get("active_experiment_new_due_count") or 0)
     refill_due = active_experiment_new_due if active_experiment_needs_sample else direct_due
+    sendable_due, sendable_due_mode = _sendable_due_for_current_goal(status)
     cap_remaining = int(status.get("cap_remaining") or 0)
     send_window_open = bool(status.get("send_window_is_open"))
     min_direct_due = int(os.getenv("AO_RELAY_MIN_DIRECT_DUE", str(max(settings.buyer_acq_daily_send_cap, 10))) or 10)
@@ -1200,7 +1207,7 @@ async def _relay_money_loop_tick(
         }
 
     outreach_phase = "after_refill"
-    send_first = send_live and send_window_open and direct_due > 0 and cap_remaining > 0
+    send_first = send_live and send_window_open and sendable_due > 0 and cap_remaining > 0
     if send_first:
         outreach_result = _compact_outreach_result(await asyncio.to_thread(outreach.run_custom_outreach_cycle))
         outreach_phase = "before_refill"
@@ -1410,9 +1417,10 @@ async def _relay_money_loop_tick(
         post_refill_outreach_result = None
         if send_live and _refill_created_send_capacity(refill_result):
             status_after_refill = await asyncio.to_thread(outreach.outreach_status)
+            post_refill_sendable_due, _ = _sendable_due_for_current_goal(status_after_refill)
             if (
                 status_after_refill.get("send_window_is_open")
-                and int(status_after_refill.get("direct_due_count") or 0) > 0
+                and post_refill_sendable_due > 0
                 and int(status_after_refill.get("cap_remaining") or 0) > 0
             ):
                 post_refill_outreach_result = _compact_outreach_result(
@@ -1438,6 +1446,8 @@ async def _relay_money_loop_tick(
         "direct_due_before": direct_due,
         "active_experiment_needs_sample": active_experiment_needs_sample,
         "active_experiment_new_due_before": active_experiment_new_due,
+        "sendable_due_before": sendable_due,
+        "sendable_due_mode": sendable_due_mode,
         "refill_due_before": refill_due,
         "refill_due_for_decision": refill_due_for_decision,
         "refill_due_target": refill_due_target,
@@ -1509,10 +1519,10 @@ def _money_loop_sleep_seconds(result: dict[str, Any] | None, default_interval: i
     if not isinstance(status_after, dict):
         return default_interval, "default_interval"
 
-    direct_due = int(status_after.get("direct_due_count") or 0)
+    sendable_due, _ = _sendable_due_for_current_goal(status_after)
     cap_remaining = int(status_after.get("cap_remaining") or 0)
     window_open = bool(status_after.get("send_window_is_open"))
-    if window_open and direct_due > 0 and cap_remaining > 0:
+    if window_open and sendable_due > 0 and cap_remaining > 0:
         return min(default_interval, 120), "active_send_window"
 
     sent_today = int(status_after.get("sent_today") or 0)
