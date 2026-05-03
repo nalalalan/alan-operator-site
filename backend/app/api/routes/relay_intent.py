@@ -123,6 +123,79 @@ def _revenue_ladder_status() -> dict[str, Any]:
     }
 
 
+def _operator_mode(
+    *,
+    state: str,
+    loop_status: str,
+    delivery_smoke_status: str,
+    replies: int,
+    payments: int,
+    checkout_clicks: int,
+    active_autonomous_ready: bool,
+    active_queue_ready: bool,
+) -> dict[str, Any]:
+    urgent_states = {
+        "infrastructure_blocked",
+        "paid_fulfillment",
+        "checkout_to_payment",
+        "reply_to_payment",
+        "outbound_send_failed",
+        "outbound_send_stalled",
+    }
+    followup_states = {
+        "messy_notes_to_payment",
+        "sample_to_notes",
+    }
+    unhealthy_loop = loop_status in {"disabled", "error", "stuck", "late"}
+    if unhealthy_loop:
+        return {
+            "mode": "attention_required",
+            "do_not_interrupt_user": False,
+            "reason": f"money loop is {loop_status}",
+        }
+    if delivery_smoke_status == "error":
+        return {
+            "mode": "attention_required",
+            "do_not_interrupt_user": False,
+            "reason": "delivery smoke check is failing",
+        }
+    if state in urgent_states:
+        return {
+            "mode": "attention_required",
+            "do_not_interrupt_user": False,
+            "reason": state,
+        }
+    if state in followup_states:
+        return {
+            "mode": "autonomous_followup_due",
+            "do_not_interrupt_user": True,
+            "reason": state,
+        }
+    if replies > payments or checkout_clicks > payments:
+        return {
+            "mode": "attention_required",
+            "do_not_interrupt_user": False,
+            "reason": "real buyer signal is ahead of payments",
+        }
+    if active_autonomous_ready:
+        return {
+            "mode": "autonomous_sending_now",
+            "do_not_interrupt_user": True,
+            "reason": "send window is open and queued leads are ready",
+        }
+    if active_queue_ready:
+        return {
+            "mode": "out_of_loop_waiting",
+            "do_not_interrupt_user": True,
+            "reason": "queued leads are ready for the next send window",
+        }
+    return {
+        "mode": "out_of_loop_monitoring",
+        "do_not_interrupt_user": True,
+        "reason": state or "no immediate human action",
+    }
+
+
 def _internal_emails() -> set[str]:
     configured = os.getenv("RELAY_INTERNAL_EMAILS", "pham.alann@gmail.com").split(",")
     return {email.strip().lower() for email in configured if email.strip()}
@@ -1197,10 +1270,29 @@ def relay_ops_check(days: int = 14) -> dict[str, Any]:
             replies = _safe_int(success_outreach.get("replies"))
             auto_replies = _safe_int(success_outreach.get("auto_replies"))
             checkout_clicks = _safe_int(success_intent.get("checkout_clicks"))
+            money_state = str(success.get("bottleneck") or "unknown")
+            loop_status = str(checks.get("money_loop_runtime", {}).get("status") or "unknown")
+            latest_delivery_smoke = recent.get("last_delivery_smoke_detail")
+            delivery_smoke_status = (
+                str(latest_delivery_smoke.get("status") or "")
+                if isinstance(latest_delivery_smoke, dict)
+                else ""
+            )
+            operator_mode = _operator_mode(
+                state=money_state,
+                loop_status=loop_status,
+                delivery_smoke_status=delivery_smoke_status,
+                replies=replies,
+                payments=payments,
+                checkout_clicks=checkout_clicks,
+                active_autonomous_ready=active_autonomous_ready,
+                active_queue_ready=active_queue_ready,
+            )
             checks["money_system"] = {
-                "state": success.get("bottleneck") or "unknown",
+                "state": money_state,
                 "gross_usd": money.get("gross_usd", 0),
                 "payments": payments,
+                "operator_mode": operator_mode,
                 "revenue_ladder": revenue_ladder,
                 "close_path": {
                     "replies": replies,
@@ -1217,7 +1309,7 @@ def relay_ops_check(days: int = 14) -> dict[str, Any]:
                 "active_experiment_decision_state": experiment_decision_state,
                 "queued_direct_leads": outreach.get("direct_due_count"),
                 "cap_remaining": cap_remaining,
-                "loop_status": checks.get("money_loop_runtime", {}).get("status"),
+                "loop_status": loop_status,
                 "next_autonomous_window": outreach.get("send_window_next_open_local"),
                 "next_action": success.get("next_action"),
             }
