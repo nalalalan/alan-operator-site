@@ -954,6 +954,8 @@ def _bottleneck(snapshot: dict[str, Any]) -> str:
         and not active_sample_complete_without_signal
     ):
         return "reply_to_payment"
+    if int(money.get("payments") or 0) > 0:
+        return "paid_signal_keep_stable"
     if (
         int(outreach.get("send_failures_today") or 0) > 0
         and int(outreach.get("sent_today") or 0) == 0
@@ -989,6 +991,7 @@ def _next_action(bottleneck: str) -> str:
     actions = {
         "infrastructure_blocked": "Fix missing production credentials before trying to scale.",
         "paid_fulfillment": "Fulfill paid buyers and keep reminders active until delivery is complete.",
+        "paid_signal_keep_stable": "Keep the paid lane stable; continue only controlled tests that do not disturb fulfillment.",
         "messy_notes_to_payment": "Send the notes-to-checkout follow-up.",
         "sample_to_notes": "Send the sample-to-notes follow-up.",
         "checkout_to_payment": "Keep notes-first friction low and make the paid test obvious after interest.",
@@ -1058,6 +1061,10 @@ def _money_proof_mandate(snapshot: dict[str, Any], bottleneck: str) -> dict[str,
         state = "close_buyer_reply"
         primary_action = "close real replies through the paid next step before changing traffic or copy"
         owner_policy = "manual_input_required"
+    elif payments > 0 or bottleneck == "paid_signal_keep_stable":
+        state = "protect_winning_lane"
+        primary_action = "keep the paid lane stable and continue only controlled tests that do not disturb fulfillment"
+        owner_policy = "owner_out_of_loop"
     elif bottleneck in {"outbound_send_failed", "outbound_send_stalled", "outbound_window_missed", "outbound_window_underfilled"}:
         state = "restore_send_execution"
         primary_action = _next_action(bottleneck)
@@ -1141,10 +1148,18 @@ def _money_proof_health(mandate: dict[str, Any]) -> dict[str, Any]:
     overdue = deadline_at is not None and now > deadline_at
     seconds_until_deadline = int((deadline_at - now).total_seconds()) if deadline_at is not None else None
 
-    if payments > 0:
+    if state == "fulfill_paid_buyer":
+        health = "paid_fulfillment_open"
+        reason = "payment exists and fulfillment is not complete"
+        recovery = "fulfill the paid buyer and keep the current lane stable"
+    elif state == "protect_winning_lane":
+        health = "winning_lane_active"
+        reason = "payment exists; protect the lane that produced money"
+        recovery = "keep the paid lane stable and continue only controlled tests"
+    elif payments > 0:
         health = "money_proof_satisfied"
         reason = "payment exists"
-        recovery = "fulfill the paid buyer and keep the current lane stable"
+        recovery = "keep the paid lane stable"
     elif checkout_gap > 0 or unhandled_replies > 0:
         health = "buyer_signal_open"
         reason = "buyer signal is ahead of payment"
@@ -1179,7 +1194,7 @@ def _money_proof_health(mandate: dict[str, Any]) -> dict[str, Any]:
         "expected_active_sends": expected_active_sends,
         "actual_active_sends": actual_active_sends,
         "autonomous_recovery_action": recovery,
-        "owner_interrupt": health in {"execution_proof_missed", "recovery_required", "buyer_signal_open"},
+        "owner_interrupt": health in {"paid_fulfillment_open", "execution_proof_missed", "recovery_required", "buyer_signal_open"},
         "do_not_judge_demand": health in {"execution_proof_missed", "recovery_required"},
     }
 
