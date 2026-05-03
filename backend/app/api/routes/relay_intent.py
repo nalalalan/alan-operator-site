@@ -217,6 +217,21 @@ def _upsert_relay_acquisition_prospect(
     score: int,
 ) -> dict[str, Any]:
     metadata = payload.metadata or {}
+    source_lower = (source or "").lower()
+    if "checkout_intent" in source_lower:
+        inbound_stage = "checkout_intent"
+        minimum_score = 90
+    elif "messy_notes" in source_lower:
+        inbound_stage = "messy_notes"
+        minimum_score = 85
+    elif "sample" in source_lower:
+        inbound_stage = "sample_requested"
+        minimum_score = 60
+    else:
+        inbound_stage = "inbound_lead"
+        minimum_score = 40
+
+    effective_score = max(int(score or 0), minimum_score)
     notes = str(metadata.get("notes") or "").strip()[:5000]
     prospect = (
         db.query(AcquisitionProspect)
@@ -233,24 +248,30 @@ def _upsert_relay_acquisition_prospect(
             company_name=str(metadata.get("company_name") or metadata.get("client_name") or "Relay lead")[:255],
             source="relay_intent",
             status="interested",
-            fit_score=score,
+            fit_score=effective_score,
             fit_band="inbound",
+            last_reply_state=inbound_stage,
         )
         db.add(prospect)
         created = True
 
-    if prospect.status not in {"paid", "intake_received"}:
+    locked_paid_state = prospect.status in {"paid", "intake_received"} or prospect.stripe_status == "paid"
+    if not locked_paid_state:
         prospect.status = "interested"
     prospect.source = prospect.source or "relay_intent"
-    prospect.fit_score = max(int(prospect.fit_score or 0), score)
+    prospect.fit_score = max(int(prospect.fit_score or 0), effective_score)
     prospect.fit_band = prospect.fit_band or "inbound"
+    if not locked_paid_state:
+        prospect.last_reply_state = inbound_stage
     prospect.notes = notes or prospect.notes
     prospect.payload_json = json.dumps(
         {
             "relay_lead_id": lead.id,
             "session_id": lead.session_id,
             "source": source,
-            "score": score,
+            "score": effective_score,
+            "raw_score": score,
+            "inbound_stage": inbound_stage,
             "metadata": metadata,
         },
         ensure_ascii=False,
@@ -260,6 +281,8 @@ def _upsert_relay_acquisition_prospect(
         "status": "created" if created else "updated",
         "external_id": prospect.external_id,
         "contact_email": prospect.contact_email,
+        "inbound_stage": inbound_stage,
+        "fit_score": prospect.fit_score,
     }
 
 
@@ -459,8 +482,8 @@ def record_relay_lead(payload: RelayIntentLeadIn, request: Request) -> dict[str,
         source_lower = source.lower()
         acquisition_prospect = (
             _upsert_relay_acquisition_prospect(db, lead, payload, email, source, score)
-            if "messy_notes" in source_lower
-            else {"status": "skipped", "reason": "not a messy notes request"}
+            if any(term in source_lower for term in ["messy_notes", "sample", "checkout_intent"])
+            else {"status": "skipped", "reason": "not an inbound buyer signal"}
         )
         db.commit()
 
@@ -480,6 +503,28 @@ def record_relay_lead(payload: RelayIntentLeadIn, request: Request) -> dict[str,
             else {"status": "skipped", "reason": "not a messy notes request"}
         )
         try:
+            if acquisition_prospect.get("status") in {"created", "updated"}:
+                db.add(
+                    AcquisitionEvent(
+                        event_type=f"relay_inbound_prospect_{acquisition_prospect.get('status', 'unknown')}",
+                        prospect_external_id=str(acquisition_prospect.get("external_id") or f"relay-lead:{lead.id}"),
+                        summary=(
+                            f"inbound {acquisition_prospect.get('inbound_stage', 'lead')} prospect "
+                            f"{acquisition_prospect.get('status', 'unknown')} for {email}"
+                        ),
+                        payload_json=json.dumps(
+                            {
+                                "lead_id": lead.id,
+                                "session_id": sid,
+                                "email": email,
+                                "source": source,
+                                "score": score,
+                                "acquisition_prospect": acquisition_prospect,
+                            },
+                            ensure_ascii=False,
+                        ),
+                    )
+                )
             db.add(
                 AcquisitionEvent(
                     event_type=f"relay_sample_email_{sample_email.get('status', 'unknown')}",
@@ -661,6 +706,7 @@ def relay_ops_check(days: int = 14) -> dict[str, Any]:
             "last_inbound_followup": _latest_acquisition_event(db, "autopilot_messy_notes_checkout_followup_sent")
             or _latest_acquisition_event(db, "autopilot_sample_notes_followup_sent")
             or _latest_acquisition_event(db, "autopilot_checkout_intent_followup_sent"),
+            "last_inbound_prospect": _latest_acquisition_event(db, "relay_inbound_prospect"),
             "last_paid_relay_notes_fulfillment": _latest_acquisition_event(db, "autopilot_paid_relay_notes_fulfilled"),
             "last_production_transition": _latest_production_transition(db),
             "last_delivery_or_sent_action": _latest_action(db, "delivery") or _latest_action(db, "send") or _latest_action(db, "email"),
