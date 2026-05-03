@@ -283,6 +283,47 @@ STEP_TEMPLATE_VARIANTS: dict[str, list[StepTemplate]] = {
             delay_after_prev_days=2,
         ),
     ],
+    "revenue_leak_direct": [
+        StepTemplate(
+            step_number=1,
+            subject="delayed follow-up after calls",
+            body=(
+                "Hey - quick question.\n\n"
+                "When a good sales or client call ends at {company_name}, do follow-ups ever sit because the recap, next steps, and CRM update are still rough notes?\n\n"
+                "Relay is a $40 cleanup for one call: send rough notes, get the client-ready follow-up handoff back.\n\n"
+                "If one delayed follow-up is worth fixing, the paid test is here:\n"
+                "{packet_checkout_url}\n\n"
+                "- Alan"
+            ),
+            delay_after_prev_days=0,
+        ),
+        StepTemplate(
+            step_number=2,
+            subject="re: delayed follow-up after calls",
+            body=(
+                "Following up once.\n\n"
+                "The value is simple: fewer good calls turning into slow follow-up because nobody has time to clean the notes.\n\n"
+                "One-call cleanup test:\n"
+                "{packet_checkout_url}\n\n"
+                "Sample format:\n"
+                "{sample_url}\n\n"
+                "- Alan"
+            ),
+            delay_after_prev_days=1,
+        ),
+        StepTemplate(
+            step_number=3,
+            subject="re: delayed follow-up after calls",
+            body=(
+                "Last note from me.\n\n"
+                "If delayed follow-up is not a bottleneck, no worries.\n\n"
+                "If one call is worth cleaning up, the $40 test is here:\n"
+                "{packet_checkout_url}\n\n"
+                "- Alan"
+            ),
+            delay_after_prev_days=2,
+        ),
+    ],
 }
 
 

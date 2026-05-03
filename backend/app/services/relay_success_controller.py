@@ -24,7 +24,9 @@ SUCCESS_TICK_EVENT = "relay_success_control_tick"
 INTAKE_SMOKE_EVENT = "relay_intake_smoke_test"
 DELIVERY_SMOKE_EVENT = "relay_delivery_smoke_test"
 EXPERIMENT_PLAN_EVENT = "relay_experiment_plan"
+DEFAULT_EXPERIMENT_VARIANT = "control_sample_ask"
 HARD_PAID_TEST_VARIANT = "hard_paid_test_direct"
+ESCALATED_MONEY_VARIANTS = {HARD_PAID_TEST_VARIANT, "revenue_leak_direct"}
 
 
 def _session() -> Session:
@@ -459,12 +461,96 @@ def _zero_signal_rotation_threshold() -> int:
     return max(1, _int_env("RELAY_ZERO_SIGNAL_ROTATION_ESCALATION_COUNT", 2))
 
 
-def _zero_signal_plan_detail(payload: dict[str, Any], min_sample: int) -> dict[str, Any] | None:
+def _event_experiment_variant(payload: dict[str, Any]) -> str:
+    return str(
+        payload.get("experiment_variant")
+        or payload.get("active_experiment_variant")
+        or DEFAULT_EXPERIMENT_VARIANT
+    ).strip() or DEFAULT_EXPERIMENT_VARIANT
+
+
+def _variant_metrics_since_plan(
+    session: Session,
+    *,
+    variant: str,
+    since: datetime,
+    until: datetime,
+) -> dict[str, Any]:
+    sent_events = session.execute(
+        select(AcquisitionEvent)
+        .where(AcquisitionEvent.event_type.like("custom_outreach_sent_step_%"))
+        .where(AcquisitionEvent.created_at >= since)
+        .where(AcquisitionEvent.created_at < until)
+        .order_by(AcquisitionEvent.created_at.asc())
+    ).scalars().all()
+    matching_sends = [
+        event
+        for event in sent_events
+        if _event_experiment_variant(_safe_json(event.payload_json)) == variant
+    ]
+    prospect_ids = {
+        str(event.prospect_external_id or "").strip()
+        for event in matching_sends
+        if str(event.prospect_external_id or "").strip()
+    }
+
+    replies = 0
+    payments = 0
+    if prospect_ids:
+        replies = int(
+            session.execute(
+                select(func.count(AcquisitionEvent.id))
+                .where(AcquisitionEvent.prospect_external_id.in_(prospect_ids))
+                .where(AcquisitionEvent.event_type.in_(["custom_outreach_reply_seen", "smartlead_reply"]))
+                .where(AcquisitionEvent.created_at >= since)
+                .where(AcquisitionEvent.created_at < until)
+            ).scalar()
+            or 0
+        )
+        payments = int(
+            session.execute(
+                select(func.count(AcquisitionProspect.id))
+                .where(AcquisitionProspect.external_id.in_(prospect_ids))
+                .where(AcquisitionProspect.stripe_status == "paid")
+            ).scalar()
+            or 0
+        )
+
+    return {
+        "window": "variant_since_plan",
+        "sends": len(matching_sends),
+        "replies": replies,
+        "payments": payments,
+        "first_sent_at": matching_sends[0].created_at.isoformat() if matching_sends else "",
+        "last_sent_at": matching_sends[-1].created_at.isoformat() if matching_sends else "",
+    }
+
+
+def _zero_signal_plan_detail(
+    payload: dict[str, Any],
+    min_sample: int,
+    *,
+    live_metrics: dict[str, Any] | None = None,
+) -> tuple[dict[str, Any] | None, str]:
     decision_reasons = [
         str(reason)
         for reason in payload.get("decision_reasons", [])
         if str(reason).strip()
     ]
+
+    if live_metrics is not None:
+        sends = _safe_int(live_metrics.get("sends"))
+        replies = _safe_int(live_metrics.get("replies"))
+        payments = _safe_int(live_metrics.get("payments"))
+        if sends < min_sample:
+            return None, "pending_sample"
+        if replies > 0 or payments > 0:
+            return None, "signal_found"
+        return {
+            **live_metrics,
+            "reason": decision_reasons[0] if decision_reasons else "completed variant sample had no reply or payment signal",
+        }, "zero_signal"
+
     reason_text = " ".join(decision_reasons).lower()
     metric_windows = [
         ("rolling_7_day", payload.get("rolling_7_day_metrics")),
@@ -476,7 +562,7 @@ def _zero_signal_plan_detail(payload: dict[str, Any], min_sample: int) -> dict[s
         if not isinstance(metrics, dict):
             continue
         if _safe_int(metrics.get("replies")) > 0 or _safe_int(metrics.get("payments")) > 0:
-            return None
+            return None, "signal_found"
 
     for name, metrics in metric_windows:
         if not isinstance(metrics, dict):
@@ -491,7 +577,7 @@ def _zero_signal_plan_detail(payload: dict[str, Any], min_sample: int) -> dict[s
                 "replies": replies,
                 "payments": payments,
                 "reason": decision_reasons[0] if decision_reasons else "completed sample had no reply or payment signal",
-            }
+            }, "zero_signal"
 
     if "no reply signal" in reason_text and "measurable sends" in reason_text:
         return {
@@ -500,9 +586,9 @@ def _zero_signal_plan_detail(payload: dict[str, Any], min_sample: int) -> dict[s
             "replies": 0,
             "payments": 0,
             "reason": decision_reasons[0],
-        }
+        }, "zero_signal"
 
-    return None
+    return None, "unknown"
 
 
 def _zero_signal_rotation_status(session: Session) -> dict[str, Any]:
@@ -518,16 +604,38 @@ def _zero_signal_rotation_status(session: Session) -> dict[str, Any]:
 
     streak = 0
     details: list[dict[str, Any]] = []
+    now = _now()
+    pending_rotation: dict[str, Any] | None = None
     for row in rows:
         payload = _safe_json(row.payload_json)
-        detail = _zero_signal_plan_detail(payload, min_sample)
+        variant = _event_experiment_variant(payload)
+        live_metrics = (
+            _variant_metrics_since_plan(
+                session,
+                variant=variant,
+                since=row.created_at or now,
+                until=now,
+            )
+            if row.created_at
+            else None
+        )
+        detail, state = _zero_signal_plan_detail(payload, min_sample, live_metrics=live_metrics)
         if detail is None:
+            if state == "pending_sample" and pending_rotation is None:
+                pending_rotation = {
+                    "created_at": row.created_at.isoformat() if row.created_at else "",
+                    "experiment_variant": variant,
+                    "experiment_label": str(payload.get("experiment_label") or ""),
+                    "sends": _safe_int((live_metrics or {}).get("sends")),
+                    "sample_target": min_sample,
+                }
+                continue
             break
         streak += 1
         details.append(
             {
                 "created_at": row.created_at.isoformat() if row.created_at else "",
-                "experiment_variant": str(payload.get("experiment_variant") or ""),
+                "experiment_variant": variant,
                 "experiment_label": str(payload.get("experiment_label") or ""),
                 **detail,
             }
@@ -537,6 +645,7 @@ def _zero_signal_rotation_status(session: Session) -> dict[str, Any]:
         "zero_signal_rotation_count": streak,
         "zero_signal_rotation_threshold": threshold,
         "zero_signal_rotation_escalated": streak >= threshold,
+        "pending_rotation": pending_rotation,
         "latest_zero_signal_rotation": details[0] if details else None,
         "recent_zero_signal_rotations": details,
     }
@@ -1060,7 +1169,7 @@ def _bottleneck(snapshot: dict[str, Any]) -> str:
     preempt_weak_zero_signal_lane = (
         performance_ok
         and zero_signal_escalated
-        and active_variant != HARD_PAID_TEST_VARIANT
+        and active_variant not in ESCALATED_MONEY_VARIANTS
         and active_replies <= 0
         and active_payments <= 0
         and int(money.get("payments") or 0) <= 0

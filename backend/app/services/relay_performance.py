@@ -93,6 +93,16 @@ EXPERIMENTS: dict[str, dict[str, Any]] = {
         ],
         "change": "Lead with the concrete $40 paid test and the after-call follow-up outcome instead of a free sample ask.",
     },
+    "revenue_leak_direct": {
+        "label": "Revenue leak angle",
+        "hypothesis": "Positioning delayed follow-up as a revenue leak may reach buyers who ignore generic cleanup language.",
+        "query_rotation": [
+            "agency sales operations founder",
+            "marketing agency client success operations",
+            "b2b agency account director",
+        ],
+        "change": "Frame the $40 test around preventing delayed client follow-up from leaking revenue.",
+    },
 }
 
 DEFAULT_RESEARCH_SOURCES = [
@@ -454,12 +464,27 @@ def _zero_signal_rotation_threshold() -> int:
     return max(1, _int_from(os.getenv("RELAY_ZERO_SIGNAL_ROTATION_ESCALATION_COUNT", "2"), 2))
 
 
-def _zero_signal_plan(payload: dict[str, Any], min_sample: int) -> bool:
+def _zero_signal_plan(
+    payload: dict[str, Any],
+    min_sample: int,
+    *,
+    live_metrics: dict[str, Any] | None = None,
+) -> tuple[bool, str]:
     decision_reasons = [
         str(reason)
         for reason in payload.get("decision_reasons", [])
         if str(reason).strip()
     ]
+    if live_metrics is not None:
+        sends = _int_from(live_metrics.get("sends"))
+        replies = _int_from(live_metrics.get("replies"))
+        payments = _int_from(live_metrics.get("payments"))
+        if sends < min_sample:
+            return False, "pending_sample"
+        if replies > 0 or payments > 0:
+            return False, "signal_found"
+        return True, "zero_signal"
+
     reason_text = " ".join(decision_reasons).lower()
     windows = [
         payload.get("rolling_7_day_metrics"),
@@ -470,7 +495,7 @@ def _zero_signal_plan(payload: dict[str, Any], min_sample: int) -> bool:
         if not isinstance(metrics, dict):
             continue
         if _int_from(metrics.get("replies")) > 0 or _int_from(metrics.get("payments")) > 0:
-            return False
+            return False, "signal_found"
     for metrics in windows:
         if not isinstance(metrics, dict):
             continue
@@ -479,13 +504,45 @@ def _zero_signal_plan(payload: dict[str, Any], min_sample: int) -> bool:
             and _int_from(metrics.get("replies")) <= 0
             and _int_from(metrics.get("payments")) <= 0
         ):
-            return True
-    return "no reply signal" in reason_text and "measurable sends" in reason_text
+            return True, "zero_signal"
+    if "no reply signal" in reason_text and "measurable sends" in reason_text:
+        return True, "zero_signal"
+    return False, "unknown"
+
+
+def _plan_variant_sample_metrics(
+    session: Session,
+    *,
+    plan: dict[str, Any],
+    plan_created_at: datetime | None,
+    now: datetime,
+) -> dict[str, Any] | None:
+    variant = str(plan.get("experiment_variant") or "").strip()
+    if not variant:
+        return None
+    start = plan_created_at or _parse_datetime(plan.get("logged_at")) or _parse_datetime(plan.get("created_at"))
+    if start is None:
+        return None
+    return _variant_metrics_for_window(session, variant=variant, start=start, end=now)
+
+
+def _latest_plan_sample_pending(session: Session, latest_plan: dict[str, Any] | None, *, now: datetime) -> bool:
+    if not latest_plan:
+        return False
+    min_sample = _min_experiment_sample()
+    metrics = _plan_variant_sample_metrics(
+        session,
+        plan=latest_plan,
+        plan_created_at=_parse_datetime(latest_plan.get("logged_at")),
+        now=now,
+    )
+    return metrics is not None and _int_from(metrics.get("sends")) < min_sample
 
 
 def _zero_signal_rotation_count(session: Session) -> int:
     min_sample = _min_experiment_sample()
     threshold = _zero_signal_rotation_threshold()
+    now = _now()
     rows = session.execute(
         select(AcquisitionEvent)
         .where(AcquisitionEvent.event_type == EXPERIMENT_PLAN_EVENT)
@@ -496,7 +553,16 @@ def _zero_signal_rotation_count(session: Session) -> int:
     count = 0
     for row in rows:
         payload = _safe_json(row.payload_json)
-        if not _zero_signal_plan(payload, min_sample):
+        live_metrics = _plan_variant_sample_metrics(
+            session,
+            plan=payload,
+            plan_created_at=row.created_at,
+            now=now,
+        )
+        is_zero_signal, state = _zero_signal_plan(payload, min_sample, live_metrics=live_metrics)
+        if not is_zero_signal:
+            if state == "pending_sample" and count == 0:
+                continue
             break
         count += 1
     return count
@@ -516,6 +582,7 @@ def _choose_variant(
     rolling_window: dict[str, Any] | None = None,
     latest_plan: dict[str, Any] | None,
     zero_signal_rotation_count: int = 0,
+    latest_plan_sample_pending: bool = False,
 ) -> tuple[str, list[str]]:
     min_sample = _min_experiment_sample()
     evidence_candidates = [
@@ -556,11 +623,18 @@ def _choose_variant(
         return "paid_test_explicit", reasons
 
     reasons.append(f"No reply signal after measurable sends in the {evidence_name}; rotate one controlled copy/targeting variable.")
+    if latest_plan_sample_pending and previous_variant in {"hard_paid_test_direct", "revenue_leak_direct"}:
+        reasons.append("The escalated paid-offer lane still needs its own sample; do not rotate before evidence.")
+        return previous_variant, reasons
     if zero_signal_rotation_count + 1 >= _zero_signal_rotation_threshold():
+        if previous_variant == "revenue_leak_direct":
+            reasons.append("The revenue-leak lane completed without signal; return to explicit paid-test copy before trying softer sample copy.")
+            return "paid_test_explicit", reasons
         if previous_variant != "hard_paid_test_direct":
             reasons.append("Repeated no-reply/no-payment rotations reached the escalation threshold; test the harder paid-offer lane.")
             return "hard_paid_test_direct", reasons
-        reasons.append("The hard paid-offer lane is already active; rotate the next controlled variable instead of repeating it.")
+        reasons.append("The hard paid-offer lane completed without signal; test a revenue-leak angle before returning to softer sample copy.")
+        return "revenue_leak_direct", reasons
     if previous_variant not in sequence:
         return sequence[0], reasons
     return sequence[(sequence.index(previous_variant) + 1) % len(sequence)], reasons
@@ -658,6 +732,7 @@ def run_weekly_performance_review(*, force: bool = False, fetch_research: bool =
         current_week["prospect_health"] = _prospect_health(session)
         latest_plan = _latest_plan_payload(session)
         zero_signal_rotations = _zero_signal_rotation_count(session)
+        latest_plan_sample_pending = _latest_plan_sample_pending(session, latest_plan, now=now)
 
     research_inputs = fetch_online_research_inputs() if fetch_research else []
     zero_signal_threshold = _zero_signal_rotation_threshold()
@@ -667,6 +742,7 @@ def run_weekly_performance_review(*, force: bool = False, fetch_research: bool =
         rolling_window=rolling_window,
         latest_plan=latest_plan,
         zero_signal_rotation_count=zero_signal_rotations,
+        latest_plan_sample_pending=latest_plan_sample_pending,
     )
     plan = _plan_payload(
         week_start=week_start,
