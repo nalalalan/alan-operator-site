@@ -69,6 +69,28 @@ def _event_count(session: Session, event_type: str, *, since: datetime, like: bo
     return int(session.execute(stmt).scalar() or 0)
 
 
+def _latest_event_payload(session: Session, event_type: str, *, since: datetime) -> dict[str, Any]:
+    event = session.execute(
+        select(AcquisitionEvent)
+        .where(AcquisitionEvent.event_type == event_type)
+        .where(AcquisitionEvent.created_at >= since)
+        .order_by(AcquisitionEvent.created_at.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+    if event is None:
+        return {}
+    payload = _safe_json(event.payload_json)
+    return {
+        "created_at": event.created_at.isoformat() if event.created_at else "",
+        "summary": event.summary,
+        "prospect_external_id": event.prospect_external_id,
+        "payload": payload,
+        "error": str(payload.get("error") or "")[:500],
+        "error_type": str(payload.get("error_type") or ""),
+        "experiment_variant": str(payload.get("experiment_variant") or payload.get("active_experiment_variant") or ""),
+    }
+
+
 def _intent_count(session: Session, event_type: str, *, since: datetime, exclude_sessions: set[str] | None = None) -> int:
     stmt = (
         select(func.count(RelayIntentEvent.id))
@@ -478,6 +500,10 @@ def relay_success_snapshot(days: int = 7) -> dict[str, Any]:
         messy_notes = _lead_count(session, "messy_notes", since=since)
         sample_requests = _lead_count(session, "sample", since=since)
         sends = _event_count(session, "custom_outreach_sent_step_%", since=since, like=True)
+        send_failures = _event_count(session, "custom_outreach_send_failed", since=since)
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        send_failures_today = _event_count(session, "custom_outreach_send_failed", since=today_start)
+        latest_send_failure = _latest_event_payload(session, "custom_outreach_send_failed", since=since)
         replies = (
             _event_count(session, "custom_outreach_reply_seen", since=since)
             + _event_count(session, "smartlead_reply", since=since)
@@ -530,6 +556,9 @@ def relay_success_snapshot(days: int = 7) -> dict[str, Any]:
         },
         "outreach": {
             "sends": sends,
+            "send_failures": send_failures,
+            "send_failures_today": send_failures_today,
+            "latest_send_failure": latest_send_failure,
             "replies": replies,
             "reply_rate": round(replies / sends, 4) if sends else 0,
             "due_now": due_now,
@@ -604,6 +633,14 @@ def _bottleneck(snapshot: dict[str, Any]) -> str:
         return "checkout_to_payment"
     if int(intent.get("checkout_clicks") or 0) > int(money.get("payments") or 0):
         return "checkout_to_payment"
+    if (
+        int(outreach.get("send_failures_today") or 0) > 0
+        and int(outreach.get("sent_today") or 0) == 0
+        and int(outreach.get("due_now") or 0) > 0
+        and int(outreach.get("cap_remaining") or 0) > 0
+        and str(outreach.get("send_window_reason") or "") not in {"weekend", "before_window"}
+    ):
+        return "outbound_send_failed"
     if _outbound_send_stalled(outreach):
         return "outbound_send_stalled"
     if outreach.get("active_experiment_needs_sample"):
@@ -628,6 +665,10 @@ def _next_action(bottleneck: str) -> str:
         "messy_notes_to_payment": "Send the notes-to-checkout follow-up.",
         "sample_to_notes": "Send the sample-to-notes follow-up.",
         "checkout_to_payment": "Keep notes-first friction low and make the paid test obvious after interest.",
+        "outbound_send_failed": (
+            "Sender failed today before any email was sent; use SMTP failover details "
+            "and fix the sending lane before judging demand."
+        ),
         "outbound_send_stalled": (
             "Send window is open with queued leads and capacity, but zero sends; "
             "retry sender and inspect the latest outreach failure."
