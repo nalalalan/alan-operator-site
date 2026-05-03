@@ -379,9 +379,10 @@ async def _extract_email_from_website(website: str) -> str:
 
 async def import_from_apollo_search(payload: Dict[str, Any]) -> Dict[str, Any]:
     client = ApifyClient(settings.apify_api_token)
+    q_keywords = str(payload.get("q_keywords") or "ppc agency founder").strip() or "ppc agency founder"
 
     run_input = {
-        "searchStringsArray": [payload.get("q_keywords", "ppc agency founder")],
+        "searchStringsArray": [q_keywords],
         "locationQuery": "United States",
         "maxCrawledPlacesPerSearch": 20,
     }
@@ -402,8 +403,8 @@ async def import_from_apollo_search(payload: Dict[str, Any]) -> Dict[str, Any]:
                 "company_name": item.get("title"),
                 "website": website,
                 "domain": website,
-                "title": "founder",
-                "headline": item.get("categoryName"),
+                "title": "Founder / Owner",
+                "headline": " ".join([str(item.get("categoryName") or ""), q_keywords]).strip(),
                 "email": email,
                 "source": "apify",
             }
