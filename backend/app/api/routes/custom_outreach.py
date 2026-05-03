@@ -44,6 +44,12 @@ def _operator_mode(status: dict, success: dict) -> dict:
         or status.get("total_replies_all_time")
         or status.get("replies_today")
     )
+    auto_replies = _safe_int(outreach.get("auto_replies") or status.get("auto_replies_today"))
+    unhandled_replies = _safe_int(
+        outreach.get("unhandled_replies")
+        if outreach.get("unhandled_replies") is not None
+        else max(replies - auto_replies - payments, 0)
+    )
     checkout_clicks = _safe_int(intent.get("checkout_clicks"))
     due = _safe_int(outreach.get("due_now") or status.get("due_now_count"))
     cap_remaining = _safe_int(outreach.get("cap_remaining") or status.get("cap_remaining"))
@@ -74,7 +80,7 @@ def _operator_mode(status: dict, success: dict) -> dict:
 
     if loop_status in {"disabled", "error", "stuck", "late"}:
         return {"mode": "attention_required", "do_not_interrupt_user": False, "reason": f"money loop is {loop_status}"}
-    if bottleneck in urgent or replies > payments or checkout_clicks > payments:
+    if bottleneck in urgent or unhandled_replies > 0 or checkout_clicks > payments:
         return {
             "mode": "attention_required",
             "do_not_interrupt_user": False,

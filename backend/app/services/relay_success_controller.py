@@ -713,6 +713,7 @@ def relay_success_snapshot(days: int = 7) -> dict[str, Any]:
             + _event_count(session, "smartlead_reply", since=since)
         )
         auto_replies = _event_count(session, "custom_outreach_auto_reply_sent", since=since)
+        unhandled_replies = max(replies - auto_replies - int(money.get("payments") or 0), 0)
         fulfilled = _event_count(session, "autopilot_paid_relay_notes_fulfilled", since=since)
         onboarding = _event_count(session, "autopilot_paid_onboarding_sent", since=since)
         inbound_followups = (
@@ -771,7 +772,9 @@ def relay_success_snapshot(days: int = 7) -> dict[str, Any]:
             "latest_send_failure": latest_send_failure,
             "replies": replies,
             "auto_replies": auto_replies,
-            "reply_to_payment_gap": max(replies - int(money.get("payments") or 0), 0),
+            "unhandled_replies": unhandled_replies,
+            "reply_to_payment_gap": unhandled_replies,
+            "auto_closed_replies": min(auto_replies, replies),
             "reply_rate": round(replies / sends, 4) if sends else 0,
             "due_now": due_now,
             "sent_today": sent_today,
@@ -843,6 +846,16 @@ def _bottleneck(snapshot: dict[str, Any]) -> str:
         and active_replies <= 0
         and active_payments <= 0
     )
+    unhandled_replies = int(
+        outreach.get("unhandled_replies")
+        if outreach.get("unhandled_replies") is not None
+        else max(
+            int(outreach.get("replies") or 0)
+            - int(outreach.get("auto_replies") or 0)
+            - int(money.get("payments") or 0),
+            0,
+        )
+    )
 
     if int(money.get("payments") or 0) > 0 and int(conversion.get("paid_notes_fulfilled") or 0) < int(money.get("payments") or 0):
         return "paid_fulfillment"
@@ -861,7 +874,7 @@ def _bottleneck(snapshot: dict[str, Any]) -> str:
     if int(intent.get("checkout_clicks") or 0) > int(money.get("payments") or 0):
         return "checkout_to_payment"
     if (
-        int(outreach.get("replies") or 0) > int(money.get("payments") or 0)
+        unhandled_replies > 0
         and not active_sample_complete_without_signal
     ):
         return "reply_to_payment"

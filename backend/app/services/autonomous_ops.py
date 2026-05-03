@@ -2336,6 +2336,12 @@ def _ao_digest_operator_mode(
     bottleneck = str(success_status.get("bottleneck") or "").strip()
     payments = _ao_digest_int(money.get("payments") or summary.get("week", {}).get("payments_count"))
     replies = _ao_digest_int(outreach.get("replies") or outreach_digest.get("total_replies_all_time") or outreach_digest.get("replies_today"))
+    auto_replies = _ao_digest_int(outreach.get("auto_replies") or outreach_digest.get("auto_replies_today"))
+    unhandled_replies = _ao_digest_int(
+        outreach.get("unhandled_replies")
+        if outreach.get("unhandled_replies") is not None
+        else max(replies - auto_replies - payments, 0)
+    )
     checkout_clicks = _ao_digest_int(intent.get("checkout_clicks"))
     due = _ao_digest_int(outreach.get("due_now") or outreach_digest.get("direct_due_count") or outreach_digest.get("due_now_count"))
     cap_remaining = _ao_digest_int(outreach.get("cap_remaining") or outreach_digest.get("cap_remaining"))
@@ -2366,7 +2372,7 @@ def _ao_digest_operator_mode(
     }
     followup = {"messy_notes_to_payment", "sample_to_notes"}
 
-    if bottleneck in urgent or replies > payments or checkout_clicks > payments:
+    if bottleneck in urgent or unhandled_replies > 0 or checkout_clicks > payments:
         return {
             "mode": "attention_required",
             "label": "Attention needed",
@@ -2451,6 +2457,15 @@ def _ao_digest_launch_readiness(
     ).strip()
     active_replies = _ao_digest_int(active_signal.get("replies"))
     active_payments = _ao_digest_int(active_signal.get("payments"))
+    outreach = _ao_digest_nested(snapshot, "outreach")
+    replies = _ao_digest_int(outreach.get("replies"))
+    auto_replies = _ao_digest_int(outreach.get("auto_replies"))
+    payments = _ao_digest_int(_ao_digest_nested(snapshot, "money").get("payments"))
+    unhandled_replies = _ao_digest_int(
+        outreach.get("unhandled_replies")
+        if outreach.get("unhandled_replies") is not None
+        else max(replies - auto_replies - payments, 0)
+    )
 
     blockers: list[str] = []
     execution_blocker_states = {
@@ -2480,10 +2495,10 @@ def _ao_digest_launch_readiness(
 
     if active_payments > 0:
         interrupt_rule = "interrupt for fulfillment and keep the winning lane stable"
-    elif active_replies > 0:
-        interrupt_rule = "interrupt to close real replies through the paid next step"
+    elif unhandled_replies > 0:
+        interrupt_rule = "interrupt to close unhandled replies through the paid next step"
     else:
-        interrupt_rule = "do not interrupt unless replies, checkout/payment signal, or system health changes"
+        interrupt_rule = "do not interrupt unless unhandled replies, checkout/payment signal, or system health changes"
 
     proof_target = (
         f"collect {active_remaining} more active-variant sends"

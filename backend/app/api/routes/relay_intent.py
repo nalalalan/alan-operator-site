@@ -217,6 +217,7 @@ def _launch_readiness_contract(
     experiment_decision_next: str,
     active_signal_replies: int,
     active_signal_payments: int,
+    unhandled_replies: int,
 ) -> dict[str, Any]:
     blockers: list[str] = []
     execution_blocker_states = {
@@ -245,10 +246,10 @@ def _launch_readiness_contract(
 
     if active_signal_payments > 0:
         interrupt_rule = "interrupt for fulfillment and keep the winning lane stable"
-    elif active_signal_replies > 0:
-        interrupt_rule = "interrupt to close real replies through the paid next step"
+    elif unhandled_replies > 0:
+        interrupt_rule = "interrupt to close unhandled replies through the paid next step"
     else:
-        interrupt_rule = "do not interrupt unless replies, checkout/payment signal, or system health changes"
+        interrupt_rule = "do not interrupt unless unhandled replies, checkout/payment signal, or system health changes"
 
     if active_remaining > 0:
         proof_target = f"collect {active_remaining} more active-variant sends"
@@ -1347,6 +1348,11 @@ def relay_ops_check(days: int = 14) -> dict[str, Any]:
             payments = _safe_int(money.get("payments"))
             replies = _safe_int(success_outreach.get("replies"))
             auto_replies = _safe_int(success_outreach.get("auto_replies"))
+            unhandled_replies = _safe_int(
+                success_outreach.get("unhandled_replies")
+                if success_outreach.get("unhandled_replies") is not None
+                else max(replies - auto_replies - payments, 0)
+            )
             checkout_clicks = _safe_int(success_intent.get("checkout_clicks"))
             money_state = str(success.get("bottleneck") or "unknown")
             loop_status = str(checks.get("money_loop_runtime", {}).get("status") or "unknown")
@@ -1361,7 +1367,7 @@ def relay_ops_check(days: int = 14) -> dict[str, Any]:
                 next_action=str(success.get("next_action") or ""),
                 loop_status=loop_status,
                 delivery_smoke_status=delivery_smoke_status,
-                replies=replies,
+                replies=unhandled_replies,
                 payments=payments,
                 checkout_clicks=checkout_clicks,
                 active_autonomous_ready=active_autonomous_ready,
@@ -1384,6 +1390,7 @@ def relay_ops_check(days: int = 14) -> dict[str, Any]:
                 experiment_decision_next=experiment_decision_next,
                 active_signal_replies=active_signal_replies,
                 active_signal_payments=active_signal_payments,
+                unhandled_replies=unhandled_replies,
             )
             checks["money_system"] = {
                 "state": money_state,
@@ -1395,8 +1402,10 @@ def relay_ops_check(days: int = 14) -> dict[str, Any]:
                 "close_path": {
                     "replies": replies,
                     "auto_replies": auto_replies,
+                    "unhandled_replies": unhandled_replies,
+                    "auto_closed_replies": min(auto_replies, replies),
                     "checkout_clicks": checkout_clicks,
-                    "reply_to_payment_gap": max(replies - payments, 0),
+                    "reply_to_payment_gap": unhandled_replies,
                     "auto_reply_to_payment_gap": max(auto_replies - payments, 0),
                     "checkout_to_payment_gap": max(checkout_clicks - payments, 0),
                 },
