@@ -2452,6 +2452,15 @@ def _ao_digest_launch_readiness(
     active_payments = _ao_digest_int(active_signal.get("payments"))
 
     blockers: list[str] = []
+    execution_blocker_states = {
+        "infrastructure_blocked",
+        "outbound_send_failed",
+        "outbound_send_stalled",
+        "outbound_window_missed",
+    }
+    bottleneck = str(success_status.get("bottleneck") or "").strip()
+    if bottleneck in execution_blocker_states:
+        blockers.append(str(success_status.get("next_action") or bottleneck))
     money_loop = outreach_digest.get("money_loop") if isinstance(outreach_digest.get("money_loop"), dict) else {}
     loop_status = str(money_loop.get("status") or "").strip()
     if loop_status in {"disabled", "error", "stuck", "late"}:

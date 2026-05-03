@@ -126,6 +126,7 @@ def _revenue_ladder_status() -> dict[str, Any]:
 def _operator_mode(
     *,
     state: str,
+    next_action: str = "",
     loop_status: str,
     delivery_smoke_status: str,
     replies: int,
@@ -164,7 +165,7 @@ def _operator_mode(
         return {
             "mode": "attention_required",
             "do_not_interrupt_user": False,
-            "reason": state,
+            "reason": next_action or state,
         }
     if state in followup_states:
         return {
@@ -199,6 +200,8 @@ def _operator_mode(
 
 def _launch_readiness_contract(
     *,
+    money_state: str,
+    money_next_action: str,
     loop_status: str,
     delivery_smoke_status: str,
     revenue_ladder: dict[str, Any],
@@ -215,6 +218,14 @@ def _launch_readiness_contract(
     active_signal_payments: int,
 ) -> dict[str, Any]:
     blockers: list[str] = []
+    execution_blocker_states = {
+        "infrastructure_blocked",
+        "outbound_send_failed",
+        "outbound_send_stalled",
+        "outbound_window_missed",
+    }
+    if money_state in execution_blocker_states:
+        blockers.append(money_next_action or money_state)
     if loop_status in {"disabled", "error", "stuck", "late"}:
         blockers.append(f"money loop is {loop_status}")
     if delivery_smoke_status == "error":
@@ -1345,6 +1356,7 @@ def relay_ops_check(days: int = 14) -> dict[str, Any]:
             )
             operator_mode = _operator_mode(
                 state=money_state,
+                next_action=str(success.get("next_action") or ""),
                 loop_status=loop_status,
                 delivery_smoke_status=delivery_smoke_status,
                 replies=replies,
@@ -1354,6 +1366,8 @@ def relay_ops_check(days: int = 14) -> dict[str, Any]:
                 active_queue_ready=active_queue_ready,
             )
             launch_readiness = _launch_readiness_contract(
+                money_state=money_state,
+                money_next_action=str(success.get("next_action") or ""),
                 loop_status=loop_status,
                 delivery_smoke_status=delivery_smoke_status,
                 revenue_ladder=revenue_ladder,
