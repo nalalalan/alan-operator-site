@@ -2006,6 +2006,7 @@ def relay_ops_check(days: int = 14) -> dict[str, Any]:
             checks["relay_success"] = {
                 "bottleneck": success.get("bottleneck"),
                 "next_action": success.get("next_action"),
+                "money_proof_mandate": success.get("money_proof_mandate") or {},
                 "money": success_snapshot.get("money") or {},
                 "intent": success_snapshot.get("intent") or {},
                 "outreach": success_snapshot.get("outreach") or {},
@@ -2142,6 +2143,7 @@ def relay_ops_check(days: int = 14) -> dict[str, Any]:
                 "success_governor": success_governor,
                 "owner_absence_contract": owner_absence_contract,
                 "autonomous_money_mandate": autonomous_money_mandate,
+                "money_proof_mandate": success.get("money_proof_mandate") or {},
                 "revenue_ladder": revenue_ladder,
                 "close_path": {
                     "replies": replies,

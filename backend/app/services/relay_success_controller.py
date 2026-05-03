@@ -1020,6 +1020,97 @@ def _next_action(bottleneck: str) -> str:
     return actions.get(bottleneck, actions["running"])
 
 
+def _money_proof_mandate(snapshot: dict[str, Any], bottleneck: str) -> dict[str, Any]:
+    money = snapshot.get("money") if isinstance(snapshot.get("money"), dict) else {}
+    outreach = snapshot.get("outreach") if isinstance(snapshot.get("outreach"), dict) else {}
+    intent = snapshot.get("intent") if isinstance(snapshot.get("intent"), dict) else {}
+    conversion = snapshot.get("conversion") if isinstance(snapshot.get("conversion"), dict) else {}
+    window_contract = (
+        outreach.get("window_execution_contract")
+        if isinstance(outreach.get("window_execution_contract"), dict)
+        else {}
+    )
+    gross_usd = round(_safe_float(money.get("gross_usd")), 2)
+    payments = int(money.get("payments") or 0)
+    weekly_target_usd = _safe_float(os.getenv("RELAY_WEEKLY_TARGET_USD", "100"), 100.0)
+    active_sends = int(outreach.get("active_experiment_sends") or 0)
+    active_target = int(outreach.get("active_experiment_sample_target") or _experiment_failure_sample())
+    active_remaining = max(active_target - active_sends, 0) if active_target else 0
+    expected_sends = int(window_contract.get("expected_sends") or 0)
+    checkout_gap = max(int(intent.get("checkout_clicks") or 0) - payments, 0)
+    unhandled_replies = int(outreach.get("unhandled_replies") or 0)
+    fulfilled = int(conversion.get("paid_notes_fulfilled") or 0)
+
+    if snapshot.get("critical_missing"):
+        state = "restore_revenue_loop"
+        primary_action = "fix missing production credentials before trying to scale"
+        owner_policy = "manual_input_required"
+    elif payments > fulfilled:
+        state = "fulfill_paid_buyer"
+        primary_action = "fulfill paid buyers and keep the current lane stable"
+        owner_policy = "manual_input_required"
+    elif checkout_gap > 0 or bottleneck == "checkout_to_payment":
+        state = "close_checkout_intent"
+        primary_action = "follow up checkout intent until payment or no-signal timeout"
+        owner_policy = "owner_out_of_loop"
+    elif unhandled_replies > 0 or bottleneck == "reply_to_payment":
+        state = "close_buyer_reply"
+        primary_action = "close real replies through the paid next step before changing traffic or copy"
+        owner_policy = "manual_input_required"
+    elif bottleneck in {"outbound_send_failed", "outbound_send_stalled", "outbound_window_missed", "outbound_window_underfilled"}:
+        state = "restore_send_execution"
+        primary_action = _next_action(bottleneck)
+        owner_policy = "manual_input_required"
+    elif active_remaining > 0 and expected_sends > 0:
+        state = "prove_active_sample"
+        expected_progress = window_contract.get("expected_progress") or f"{min(active_sends + expected_sends, active_target)}/{active_target}"
+        primary_action = f"send {expected_sends} active leads and move progress from {active_sends}/{active_target} to {expected_progress}"
+        owner_policy = "owner_out_of_loop"
+    elif bottleneck in {"active_experiment_refill", "lead_refill", "traffic"}:
+        state = "refill_direct_buyer_leads"
+        primary_action = _next_action(bottleneck)
+        owner_policy = "owner_out_of_loop"
+    elif bottleneck == "outbound_targeting_or_copy":
+        state = "rotate_one_variable"
+        primary_action = _next_action(bottleneck)
+        owner_policy = "owner_out_of_loop"
+    else:
+        state = "monitor_money_loop"
+        primary_action = _next_action(bottleneck)
+        owner_policy = "owner_out_of_loop"
+
+    return {
+        "state": state,
+        "money_truth": "monetized" if payments > 0 or gross_usd > 0 else "not_monetized_yet",
+        "bottleneck": bottleneck,
+        "primary_action": primary_action,
+        "owner_policy": owner_policy,
+        "score": {
+            "gross_usd": gross_usd,
+            "payments": payments,
+            "weekly_target_usd": weekly_target_usd,
+            "revenue_gap_usd": round(max(weekly_target_usd - gross_usd, 0), 2),
+            "active_experiment_progress": f"{active_sends}/{active_target}" if active_target else "",
+            "active_experiment_remaining": active_remaining,
+            "unhandled_replies": unhandled_replies,
+            "checkout_to_payment_gap": checkout_gap,
+        },
+        "proof_deadline": window_contract.get("audit_at") or outreach.get("next_window_audit_at") or "",
+        "success_condition": (
+            "weekly revenue target met"
+            if gross_usd >= weekly_target_usd
+            else f"collect paid tests until ${weekly_target_usd:.2f}/week is reached"
+        ),
+        "allowed_autonomous_action": primary_action,
+        "forbidden_until_proof": [
+            "do not ask Alan to choose the next move while owner_policy is owner_out_of_loop",
+            "do not increase volume before buyer signal or completed sample review",
+            "do not change more than one targeting, copy, price, or volume variable at a time",
+            "do not declare failure from an execution miss",
+        ],
+    }
+
+
 def _run_outbound_experiment_review_if_needed(bottleneck: str, snapshot: dict[str, Any]) -> dict[str, Any]:
     if bottleneck != "outbound_targeting_or_copy":
         return {"status": "skipped", "summary": "outbound experiment review not needed for this bottleneck"}
@@ -1095,6 +1186,13 @@ def _safe_int(value: Any) -> int:
         return 0
 
 
+def _safe_float(value: Any, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except Exception:
+        return default
+
+
 def _conversion_action_summary(actions: dict[str, Any]) -> dict[str, Any]:
     sent_by_action: dict[str, int] = {}
     failures_by_action: dict[str, int] = {}
@@ -1126,6 +1224,7 @@ def _conversion_action_summary(actions: dict[str, Any]) -> dict[str, Any]:
 def run_relay_success_control_tick() -> dict[str, Any]:
     before = relay_success_snapshot(days=7)
     bottleneck = _bottleneck(before)
+    before_money_proof_mandate = _money_proof_mandate(before, bottleneck)
 
     actions: dict[str, Any] = {}
     actions["intake_smoke_check"] = _run_intake_smoke_check_if_needed()
@@ -1142,12 +1241,15 @@ def run_relay_success_control_tick() -> dict[str, Any]:
 
     after = relay_success_snapshot(days=7)
     after_bottleneck = _bottleneck(after)
+    money_proof_mandate = _money_proof_mandate(after, after_bottleneck)
     result = {
         "status": "ok",
         "bottleneck": bottleneck,
         "next_action": _next_action(bottleneck),
         "after_bottleneck": after_bottleneck,
         "after_next_action": _next_action(after_bottleneck),
+        "before_money_proof_mandate": before_money_proof_mandate,
+        "money_proof_mandate": money_proof_mandate,
         "bottleneck_changed": after_bottleneck != bottleneck,
         "before": before,
         "actions": actions,
@@ -1161,7 +1263,7 @@ def run_relay_success_control_tick() -> dict[str, Any]:
             AcquisitionEvent(
                 event_type=SUCCESS_TICK_EVENT,
                 prospect_external_id="relay-success",
-                summary=f"{bottleneck}->{after_bottleneck}: {_next_action(after_bottleneck)}",
+                summary=f"{money_proof_mandate.get('state')}: {money_proof_mandate.get('primary_action')}",
                 payload_json=json.dumps(result, ensure_ascii=False),
             )
         )
@@ -1173,6 +1275,7 @@ def run_relay_success_control_tick() -> dict[str, Any]:
 def relay_success_status() -> dict[str, Any]:
     snapshot = relay_success_snapshot(days=7)
     bottleneck = _bottleneck(snapshot)
+    money_proof_mandate = _money_proof_mandate(snapshot, bottleneck)
     with _session() as session:
         latest = session.execute(
             select(AcquisitionEvent)
@@ -1185,6 +1288,7 @@ def relay_success_status() -> dict[str, Any]:
         "status": "ok",
         "bottleneck": bottleneck,
         "next_action": _next_action(bottleneck),
+        "money_proof_mandate": money_proof_mandate,
         "snapshot": snapshot,
         "latest_tick": {
             "created_at": latest.created_at.isoformat(),
