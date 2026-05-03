@@ -2416,6 +2416,87 @@ def _ao_digest_operator_note(operator: dict[str, Any]) -> str:
     return reason
 
 
+def _ao_digest_ceil_div(numerator: int, denominator: int) -> int:
+    if numerator <= 0 or denominator <= 0:
+        return 0
+    return (numerator + denominator - 1) // denominator
+
+
+def _ao_digest_launch_readiness(
+    summary: dict[str, Any],
+    outreach_digest: dict[str, Any],
+    success_status: dict[str, Any] | None = None,
+    operator: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    success_status = success_status if isinstance(success_status, dict) else {}
+    snapshot = _ao_digest_nested(success_status, "snapshot")
+    performance = _ao_digest_nested(snapshot, "performance")
+    active_signal = _ao_digest_nested(performance, "active_experiment_signal")
+    operator = operator or _ao_digest_operator_mode(summary, outreach_digest, success_status)
+
+    active_sends = _ao_digest_int(outreach_digest.get("active_experiment_sends"))
+    active_target = _ao_digest_int(outreach_digest.get("active_experiment_sample_target"))
+    active_due = _ao_digest_int(outreach_digest.get("active_experiment_new_due_count"))
+    active_remaining = max(active_target - active_sends, 0) if active_target else 0
+    cap_remaining = _ao_digest_int(outreach_digest.get("cap_remaining"))
+    daily_cap = _ao_digest_int(outreach_digest.get("effective_daily_cap") or outreach_digest.get("daily_send_cap"))
+    capacity = max(min(cap_remaining or daily_cap, daily_cap or cap_remaining or 1), 1)
+    windows_remaining = _ao_digest_ceil_div(active_remaining, capacity)
+    next_window = str(
+        operator.get("next_window")
+        or outreach_digest.get("send_window_next_open_local")
+        or ""
+    ).strip()
+    active_replies = _ao_digest_int(active_signal.get("replies"))
+    active_payments = _ao_digest_int(active_signal.get("payments"))
+
+    blockers: list[str] = []
+    money_loop = outreach_digest.get("money_loop") if isinstance(outreach_digest.get("money_loop"), dict) else {}
+    loop_status = str(money_loop.get("status") or "").strip()
+    if loop_status in {"disabled", "error", "stuck", "late"}:
+        blockers.append(f"money loop is {loop_status}")
+    if not str(settings.packet_checkout_url or "").strip():
+        blockers.append("entry checkout link is not configured")
+    if active_target <= 0:
+        blockers.append("active experiment sample target is missing")
+    if active_remaining > 0 and active_due <= 0:
+        blockers.append("active experiment needs more queued first-touch leads")
+    if active_remaining > 0 and windows_remaining <= 0:
+        blockers.append("active experiment has no estimated send window capacity")
+    if active_remaining > 0 and not next_window:
+        blockers.append("next send window is not known")
+
+    if active_payments > 0:
+        interrupt_rule = "interrupt for fulfillment and keep the winning lane stable"
+    elif active_replies > 0:
+        interrupt_rule = "interrupt to close real replies through the paid next step"
+    else:
+        interrupt_rule = "do not interrupt unless replies, checkout/payment signal, or system health changes"
+
+    proof_target = (
+        f"collect {active_remaining} more active-variant sends"
+        if active_remaining > 0
+        else "judge the completed active sample"
+    )
+    success_metric = (
+        "first real reply, checkout/payment signal, or completed active sample"
+        if active_remaining > 0
+        else "active replies/payments decide whether to keep stable or rotate one variable"
+    )
+
+    return {
+        "ready": not blockers,
+        "blockers": blockers,
+        "proof_target": proof_target,
+        "success_metric": success_metric,
+        "interrupt_rule": interrupt_rule,
+        "active_experiment_progress": f"{active_sends}/{active_target}" if active_target else "",
+        "estimated_windows_remaining": windows_remaining,
+        "next_autonomous_window": next_window,
+        "review_rule": "do not judge the offer until the active sample is complete or real buyer signal appears",
+    }
+
+
 def _ao_digest_fetch_json(url: str, timeout_seconds: int = 8) -> dict[str, Any]:
     request = _ao_digest_urlrequest.Request(
         url,
@@ -2631,6 +2712,12 @@ def _daily_update_html(
     relay_move = _ao_digest_relay_move(summary, outreach_digest)
     operator = _ao_digest_operator_mode(summary, outreach_digest, success_status)
     operator_note = _ao_digest_operator_note(operator)
+    readiness = _ao_digest_launch_readiness(summary, outreach_digest, success_status, operator)
+    readiness_note = (
+        "Ready: no blockers"
+        if readiness.get("ready")
+        else "Blocked: " + "; ".join(readiness.get("blockers") or [])
+    )
 
     return f"""
 <div style="margin:0;padding:12px;background:#f6f7f9;">
@@ -2656,6 +2743,12 @@ def _daily_update_html(
       <div style="border:1px solid #d8dee8;border-radius:12px;padding:12px 14px;margin-top:12px;background:#f8fafc;">
         <div style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#64748b;font-weight:800;">Next money move</div>
         <div style="font-size:15px;line-height:1.45;font-weight:800;color:#101827;margin-top:4px;">{escape(relay_move)}</div>
+      </div>
+      <div style="border:1px solid #d8dee8;border-radius:12px;padding:12px 14px;margin-top:12px;background:#f8fafc;">
+        <div style="font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#64748b;font-weight:800;">Launch contract</div>
+        <div style="font-size:15px;line-height:1.45;font-weight:800;color:#101827;margin-top:4px;">{escape(str(readiness.get("proof_target") or ""))}</div>
+        <div style="font-size:13px;line-height:1.45;color:#475569;margin-top:5px;">{escape(readiness_note)}</div>
+        <div style="font-size:13px;line-height:1.45;color:#475569;margin-top:5px;">{escape(str(readiness.get("interrupt_rule") or ""))}</div>
       </div>
       <div style="margin-top:14px;">
         <a href="{escape(relay_url)}" style="display:inline-block;background:#101827;color:#ffffff;text-decoration:none;padding:10px 13px;border-radius:10px;font-weight:900;margin-right:8px;">Open Relay Admin</a>
@@ -2702,12 +2795,22 @@ def _daily_update_text(
     total_replies = _ao_digest_total_replies(outreach_digest)
     items = ocean_digest.get("items") if isinstance(ocean_digest.get("items"), list) else []
     operator = _ao_digest_operator_mode(summary, outreach_digest, success_status)
+    readiness = _ao_digest_launch_readiness(summary, outreach_digest, success_status, operator)
+    readiness_note = (
+        "ready: no blockers"
+        if readiness.get("ready")
+        else "blocked: " + "; ".join(readiness.get("blockers") or [])
+    )
 
     lines = [
         "AO Digest",
         "",
         "Relay",
         _ascii_safe(f"- operator: {operator['label']} ({_ao_digest_operator_note(operator)})"),
+        _ascii_safe(f"- launch readiness: {readiness_note}"),
+        _ascii_safe(f"- proof target: {readiness.get('proof_target', '')}"),
+        _ascii_safe(f"- success metric: {readiness.get('success_metric', '')}"),
+        _ascii_safe(f"- interrupt rule: {readiness.get('interrupt_rule', '')}"),
         f"- state: {_ao_digest_relay_state(summary, outreach_digest)}",
         _ascii_safe(f"- money today: {_ao_digest_money(today.get('gross_usd'))} from {today.get('payments_count', 0)} payments"),
         _ascii_safe(f"- money week: {_ao_digest_money(week.get('gross_usd'))} | month: {_ao_digest_money(month.get('gross_usd'))}"),
@@ -2753,6 +2856,8 @@ def send_daily_money_summary() -> dict[str, Any]:
     outreach_digest = outreach_status()
     ocean_digest = _ao_digest_ocean_digest()
     success_status = _ao_digest_success_status()
+    operator_mode = _ao_digest_operator_mode(summary, outreach_digest, success_status)
+    launch_readiness = _ao_digest_launch_readiness(summary, outreach_digest, success_status, operator_mode)
     seed_result = {"status": "skipped", "reason": "ao_digest_replaces_seed_check"}
 
     update_subject = _daily_update_subject(summary, outreach_digest, success_status)
@@ -2777,7 +2882,8 @@ def send_daily_money_summary() -> dict[str, Any]:
                         "outreach_digest": outreach_digest,
                         "ocean_digest": ocean_digest,
                         "relay_success": success_status,
-                        "operator_mode": _ao_digest_operator_mode(summary, outreach_digest, success_status),
+                        "operator_mode": operator_mode,
+                        "launch_readiness": launch_readiness,
                         "seed_result": seed_result,
                         "update_send_result": update_send_result,
                     },
@@ -2797,7 +2903,8 @@ def send_daily_money_summary() -> dict[str, Any]:
         "outreach_digest": outreach_digest,
         "ocean_digest": ocean_digest,
         "relay_success": success_status,
-        "operator_mode": _ao_digest_operator_mode(summary, outreach_digest, success_status),
+        "operator_mode": operator_mode,
+        "launch_readiness": launch_readiness,
     }
 
 # --- AO DIGEST OVERRIDE END ---
