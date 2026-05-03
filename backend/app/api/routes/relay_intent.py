@@ -182,6 +182,7 @@ def _money_decision_contract(
     active_remaining: int,
     active_signal_replies: int,
     active_signal_payments: int,
+    auto_closed_replies: int,
     unhandled_replies: int,
     checkout_clicks: int,
     payments: int,
@@ -190,6 +191,9 @@ def _money_decision_contract(
     if active_signal_payments > 0:
         state = "paid_signal_keep_stable"
         next_action = "Keep the current lane stable and fulfill the paid buyer."
+    elif auto_closed_replies > 0 and unhandled_replies <= 0 and checkout_clicks <= payments:
+        state = "auto_closed_waiting_payment"
+        next_action = "Stay out; Relay auto-answered buyer interest and is waiting for checkout or payment."
     elif unhandled_replies > 0 or checkout_clicks > payments or active_signal_replies > 0:
         state = "buyer_signal_close"
         next_action = "Close real buyer signal through the paid test before changing the experiment."
@@ -208,6 +212,46 @@ def _money_decision_contract(
         "close_condition": "unhandled reply or checkout intent before payment",
         "rotate_condition": "completed active sample with zero real replies and zero payments",
         "do_not_scale_condition": "do not increase volume until the active sample has buyer signal or a completed review",
+    }
+
+
+def _reply_autonomy_contract(
+    *,
+    replies: int,
+    auto_replies: int,
+    unhandled_replies: int,
+    checkout_clicks: int,
+    payments: int,
+    reply_autoclose_mode: str,
+) -> dict[str, Any]:
+    auto_closed_replies = min(auto_replies, replies)
+    if payments > 0:
+        state = "paid"
+        next_action = "fulfill paid buyer and keep the current lane stable"
+    elif unhandled_replies > 0 or checkout_clicks > payments:
+        state = "attention_required"
+        next_action = "close unhandled buyer signal through the paid next step"
+    elif auto_closed_replies > 0:
+        state = "auto_closed_waiting_payment"
+        next_action = "stay out; auto-reply already sent the paid path"
+    elif replies > 0:
+        state = "reply_seen_no_action"
+        next_action = "watch for auto-reply or manual-review classification"
+    else:
+        state = "idle"
+        next_action = "wait for a buyer reply"
+
+    return {
+        "state": state,
+        "reply_autoclose_mode": reply_autoclose_mode or "unknown",
+        "total_replies": replies,
+        "auto_closed_replies": auto_closed_replies,
+        "unhandled_replies": unhandled_replies,
+        "checkout_clicks": checkout_clicks,
+        "payments": payments,
+        "next_action": next_action,
+        "success_condition": "reply is auto-answered with checkout path or converted to payment",
+        "interrupt_condition": "interrupt only for unhandled replies, checkout intent ahead of payment, payment fulfillment, or reply-system health failure",
     }
 
 
@@ -1558,7 +1602,16 @@ def relay_ops_check(days: int = 14) -> dict[str, Any]:
                 if success_outreach.get("unhandled_replies") is not None
                 else max(replies - auto_replies - payments, 0)
             )
+            auto_closed_replies = min(auto_replies, replies)
             checkout_clicks = _safe_int(success_intent.get("checkout_clicks"))
+            reply_autonomy_contract = _reply_autonomy_contract(
+                replies=replies,
+                auto_replies=auto_replies,
+                unhandled_replies=unhandled_replies,
+                checkout_clicks=checkout_clicks,
+                payments=payments,
+                reply_autoclose_mode=str(outreach.get("reply_autoclose_mode") or ""),
+            )
             revenue_objective = _money_objective_status(
                 money=money,
                 outreach=outreach,
@@ -1570,6 +1623,7 @@ def relay_ops_check(days: int = 14) -> dict[str, Any]:
                 active_remaining=active_remaining,
                 active_signal_replies=active_signal_replies,
                 active_signal_payments=active_signal_payments,
+                auto_closed_replies=auto_closed_replies,
                 unhandled_replies=unhandled_replies,
                 checkout_clicks=checkout_clicks,
                 payments=payments,
@@ -1627,12 +1681,14 @@ def relay_ops_check(days: int = 14) -> dict[str, Any]:
                 "launch_readiness": launch_readiness,
                 "revenue_objective": revenue_objective,
                 "money_decision_contract": money_decision_contract,
+                "reply_autonomy_contract": reply_autonomy_contract,
                 "revenue_ladder": revenue_ladder,
                 "close_path": {
                     "replies": replies,
                     "auto_replies": auto_replies,
                     "unhandled_replies": unhandled_replies,
-                    "auto_closed_replies": min(auto_replies, replies),
+                    "auto_closed_replies": auto_closed_replies,
+                    "reply_autoclose_mode": reply_autonomy_contract.get("reply_autoclose_mode"),
                     "checkout_clicks": checkout_clicks,
                     "reply_to_payment_gap": unhandled_replies,
                     "auto_reply_to_payment_gap": max(auto_replies - payments, 0),

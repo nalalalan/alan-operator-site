@@ -866,6 +866,7 @@
       const windowExecutionState = launch.window_execution_state || moneySystem.window_execution_state || plan.window_execution_state || "";
       const revenueObjective = moneySystem.revenue_objective || status.money_target || {};
       const moneyDecisionContract = moneySystem.money_decision_contract || {};
+      const replyAutonomyContract = moneySystem.reply_autonomy_contract || {};
       const blockers = Array.isArray(launch.blockers) ? launch.blockers : [];
 
       if (mode) {
@@ -885,6 +886,7 @@
           windowExecutionState,
           revenueObjective,
           moneyDecisionContract,
+          replyAutonomyContract,
           planSummary: proofTarget,
           successMetric,
           interruptRule,
@@ -911,6 +913,7 @@
           windowExecutionState: "",
           revenueObjective,
           moneyDecisionContract,
+          replyAutonomyContract,
           planSummary: "",
           successMetric: "",
           interruptRule: "",
@@ -933,6 +936,7 @@
         windowExecutionState: plan.window_execution_state || "",
         revenueObjective,
         moneyDecisionContract,
+        replyAutonomyContract,
         planSummary: plan.summary || "",
         successMetric: "",
         interruptRule: "",
@@ -1087,8 +1091,12 @@
         const moneyTarget = objective.weekly_target_usd
           ? ` Money target: ${fmtMoney(objective.weekly_target_usd)} week${paidLeft !== undefined ? `; ${paidLeft} paid tests left` : ""}.`
           : "";
+        const replyContract = operator.replyAutonomyContract || {};
+        const replyHandling = replyContract.reply_autoclose_mode
+          ? ` Replies: ${replyContract.state || "idle"}; ${replyContract.interrupt_condition || "interrupt only for unhandled buyer signal"}.`
+          : "";
         const success = !operator.nextWindowSuccessCriterion && operator.successMetric ? ` Success metric: ${operator.successMetric}.` : "";
-        copy = `${operator.reason}${next ? ` Next autonomous window: ${next}.` : ""}${progress}${proof}${audit}${moneyTarget}${success}`;
+        copy = `${operator.reason}${next ? ` Next autonomous window: ${next}.` : ""}${progress}${proof}${audit}${moneyTarget}${replyHandling}${success}`;
       } else if (operator && !operator.doNotInterrupt) {
         headline = "Attention needed.";
         copy = operator.reason || operator.planSummary || "There is a real signal worth handling before the system keeps scaling.";
