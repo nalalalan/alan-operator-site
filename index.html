@@ -980,6 +980,103 @@
   font-size: 14px;
 }
 
+.checkout-capture[hidden] {
+  display: none !important;
+}
+
+.checkout-capture {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(38, 23, 18, 0.34);
+  backdrop-filter: blur(8px);
+}
+
+.checkout-capture-panel {
+  width: min(100%, 460px);
+  background: #fffaf6;
+  border: 1px solid rgba(191, 134, 81, 0.24);
+  border-radius: 24px;
+  box-shadow: 0 24px 70px rgba(20, 20, 20, 0.22);
+  padding: 24px;
+}
+
+.checkout-capture-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.checkout-capture-title {
+  font-size: 31px;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-weight: 950;
+}
+
+.checkout-capture-copy {
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1.42;
+  letter-spacing: -0.02em;
+  margin: 10px 0 18px;
+}
+
+.checkout-capture-close {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,.72);
+  color: var(--text);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.checkout-capture-form {
+  display: grid;
+  gap: 10px;
+}
+
+.checkout-capture-form input {
+  width: 100%;
+  min-height: 56px;
+  border-radius: 18px;
+  border: 1.5px solid var(--line);
+  background: rgba(255,255,255,.8);
+  padding: 0 16px;
+  font: inherit;
+  font-size: 16px;
+  outline: none;
+}
+
+.checkout-capture-form input:focus {
+  border-color: rgba(191, 134, 81, .65);
+  box-shadow: 0 0 0 4px rgba(191, 134, 81, .12);
+}
+
+.checkout-capture-skip {
+  display: inline-flex;
+  justify-content: center;
+  color: var(--muted);
+  font-weight: 800;
+  font-size: 14px;
+  padding: 10px 0 0;
+}
+
+.checkout-capture-status {
+  min-height: 20px;
+  color: var(--accent-dark);
+  font-weight: 800;
+  font-size: 14px;
+}
+
 @media (max-width: 760px) {
   .relay-intent-card {
     grid-template-columns: 1fr;
@@ -1247,6 +1344,25 @@
     <a class="footer-admin" href="/admin.html" rel="nofollow" aria-label="Relay admin">ops</a>
   </footer>
 
+  <div class="checkout-capture" id="checkout-capture" hidden aria-modal="true" role="dialog" aria-labelledby="checkout-capture-title">
+    <div class="checkout-capture-panel">
+      <div class="checkout-capture-top">
+        <div>
+          <div class="section-kicker">Start packet</div>
+          <h2 class="checkout-capture-title" id="checkout-capture-title">Where should Relay send it?</h2>
+        </div>
+        <button class="checkout-capture-close" type="button" aria-label="Close">&times;</button>
+      </div>
+      <p class="checkout-capture-copy">Enter your work email, then Stripe opens. Relay can keep the packet moving if checkout gets interrupted.</p>
+      <form class="checkout-capture-form">
+        <input name="checkout_email" type="email" autocomplete="email" inputmode="email" placeholder="work email" required />
+        <button class="btn btn-primary" type="submit">Continue to $40 packet</button>
+        <a class="checkout-capture-skip" href="https://buy.stripe.com/bJeaEZb4mf6de64dSi2Nq02">Use Stripe only</a>
+        <div class="checkout-capture-status" aria-live="polite"></div>
+      </form>
+    </div>
+  </div>
+
   <script src="site-config.js"></script>
   <script>
     (function () {
@@ -1297,7 +1413,9 @@
 <script>
   (function () {
     var storageKey = 'relay_intent_session_id';
+    var emailStorageKey = 'relay_intent_email';
     var fallbackKey = 'relay_intent_offline_events';
+    var pendingCheckoutUrl = '';
 
     function uuid() {
       if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
@@ -1330,6 +1448,26 @@
 
     function leadUrl() {
       return cfg('RELAY_INTENT_LEAD_URL', apiBase() ? apiBase() + '/api/relay/lead' : '');
+    }
+
+    function looksLikeEmail(email) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((email || '').trim());
+    }
+
+    function storedEmail() {
+      try {
+        return (localStorage.getItem(emailStorageKey) || '').trim().toLowerCase();
+      } catch (e) {
+        return '';
+      }
+    }
+
+    function rememberEmail(email) {
+      email = (email || '').trim().toLowerCase();
+      if (!looksLikeEmail(email)) return;
+      try {
+        localStorage.setItem(emailStorageKey, email);
+      } catch (e) {}
     }
 
     function stashOffline(kind, payload) {
@@ -1389,6 +1527,90 @@
       return 'link_click';
     }
 
+    function checkoutUrl(link) {
+      return (link && link.href) || cfg('PACKET_CHECKOUT_URL', 'https://buy.stripe.com/bJeaEZb4mf6de64dSi2Nq02');
+    }
+
+    function checkoutMeta(link) {
+      return {
+        text: (link && link.textContent || '').trim().slice(0, 240),
+        href: checkoutUrl(link),
+        className: (link && link.className) || ''
+      };
+    }
+
+    function recordCheckoutLead(email, source, extra) {
+      return postJSON(leadUrl(), {
+        session_id: sessionId(),
+        email: email,
+        source: source || 'checkout_intent',
+        page_url: location.href,
+        referrer: document.referrer || '',
+        metadata: Object.assign({
+          path: location.pathname,
+          title: document.title,
+          checkout_url: pendingCheckoutUrl,
+          offer: 'pre_checkout_email_capture'
+        }, extra || {})
+      }, 'lead');
+    }
+
+    function redirectToCheckout(url) {
+      window.location.href = url || cfg('PACKET_CHECKOUT_URL', 'https://buy.stripe.com/bJeaEZb4mf6de64dSi2Nq02');
+    }
+
+    function redirectAfterRecord(promise, url) {
+      var redirected = false;
+      function go() {
+        if (redirected) return;
+        redirected = true;
+        redirectToCheckout(url);
+      }
+      window.setTimeout(go, 800);
+      if (promise && promise.then) promise.then(go).catch(go);
+    }
+
+    function openCheckoutCapture(url) {
+      pendingCheckoutUrl = url;
+      var modal = document.getElementById('checkout-capture');
+      var input = modal && modal.querySelector('input[name="checkout_email"]');
+      var skip = modal && modal.querySelector('.checkout-capture-skip');
+      var status = modal && modal.querySelector('.checkout-capture-status');
+      if (!modal) {
+        redirectToCheckout(url);
+        return;
+      }
+      if (skip) skip.href = url;
+      if (status) status.textContent = '';
+      modal.hidden = false;
+      track('checkout_email_capture_view', { checkout_url: url });
+      window.setTimeout(function () {
+        if (input) input.focus();
+      }, 50);
+    }
+
+    function closeCheckoutCapture() {
+      var modal = document.getElementById('checkout-capture');
+      if (modal) modal.hidden = true;
+    }
+
+    function startCheckout(link) {
+      var url = checkoutUrl(link);
+      pendingCheckoutUrl = url;
+      track('checkout_click', checkoutMeta(link));
+
+      var email = storedEmail();
+      if (looksLikeEmail(email)) {
+        redirectAfterRecord(
+          recordCheckoutLead(email, 'checkout_intent_known_email', { known_email: true }),
+          url
+        );
+        return;
+      }
+
+      openCheckoutCapture(url);
+    }
+
     window.relayIntentTrack = track;
 
     track('page_view', {
@@ -1400,12 +1622,75 @@
       var link = event.target.closest && event.target.closest('a');
       if (!link) return;
 
-      track(classifyLink(link), {
+      var kind = classifyLink(link);
+      if (kind === 'checkout_click' && link.classList.contains('checkout-link')) {
+        event.preventDefault();
+        startCheckout(link);
+        return;
+      }
+
+      track(kind, {
         text: (link.textContent || '').trim().slice(0, 240),
         href: link.href || '',
         className: link.className || ''
       });
     }, true);
+
+    var checkoutCapture = document.getElementById('checkout-capture');
+    var checkoutForm = checkoutCapture && checkoutCapture.querySelector('.checkout-capture-form');
+    var checkoutClose = checkoutCapture && checkoutCapture.querySelector('.checkout-capture-close');
+    var checkoutSkip = checkoutCapture && checkoutCapture.querySelector('.checkout-capture-skip');
+
+    if (checkoutClose) {
+      checkoutClose.addEventListener('click', function () {
+        closeCheckoutCapture();
+        track('checkout_email_capture_close', { checkout_url: pendingCheckoutUrl });
+      });
+    }
+
+    if (checkoutCapture) {
+      checkoutCapture.addEventListener('click', function (event) {
+        if (event.target === checkoutCapture) {
+          closeCheckoutCapture();
+          track('checkout_email_capture_close', { checkout_url: pendingCheckoutUrl, outside_click: true });
+        }
+      });
+    }
+
+    if (checkoutSkip) {
+      checkoutSkip.addEventListener('click', function (event) {
+        event.preventDefault();
+        track('checkout_email_capture_skip', { checkout_url: pendingCheckoutUrl || checkoutSkip.href });
+        redirectToCheckout(pendingCheckoutUrl || checkoutSkip.href);
+      });
+    }
+
+    if (checkoutForm) {
+      checkoutForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+
+        var input = checkoutForm.querySelector('input[name="checkout_email"]');
+        var button = checkoutForm.querySelector('button[type="submit"]');
+        var status = checkoutForm.querySelector('.checkout-capture-status');
+        var email = input && input.value ? input.value.trim().toLowerCase() : '';
+        var url = pendingCheckoutUrl || cfg('PACKET_CHECKOUT_URL', 'https://buy.stripe.com/bJeaEZb4mf6de64dSi2Nq02');
+
+        if (!looksLikeEmail(email)) {
+          if (status) status.textContent = 'enter a work email first.';
+          return;
+        }
+
+        rememberEmail(email);
+        if (button) button.disabled = true;
+        if (status) status.textContent = 'opening checkout...';
+
+        track('checkout_email_capture_submit', { email_domain: email.split('@')[1] || '', checkout_url: url });
+        redirectAfterRecord(
+          recordCheckoutLead(email, 'checkout_intent', { email_capture: true }),
+          url
+        );
+      });
+    }
 
     document.querySelectorAll('.relay-intent-form').forEach(function (form) {
       form.addEventListener('submit', function (event) {
@@ -1419,6 +1704,7 @@
         var notes = notesInput && notesInput.value ? notesInput.value.trim() : '';
 
         if (!email || !notes) return;
+        rememberEmail(email);
 
         if (button) button.disabled = true;
         if (status) status.textContent = 'sending notes...';

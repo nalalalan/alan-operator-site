@@ -607,7 +607,7 @@ def run_checkout_intent_followup_sweep(hours: int = 1) -> dict[str, Any]:
             .limit(100)
         ).scalars().all()
 
-        candidates: list[tuple[RelayIntentEvent, RelayIntentLead]] = []
+        candidates: list[tuple[RelayIntentEvent | None, RelayIntentLead]] = []
         seen_sessions: set[str] = set()
         for event in checkout_events:
             session_id = (event.session_id or "").strip()
@@ -630,9 +630,32 @@ def run_checkout_intent_followup_sweep(hours: int = 1) -> dict[str, Any]:
                 continue
             candidates.append((event, lead))
 
+        checkout_leads = session.execute(
+            select(RelayIntentLead)
+            .where(RelayIntentLead.source.ilike("%checkout_intent%"))
+            .where(RelayIntentLead.created_at <= cutoff)
+            .order_by(RelayIntentLead.created_at.asc())
+            .limit(100)
+        ).scalars().all()
+        for lead in checkout_leads:
+            session_id = (lead.session_id or "").strip()
+            if not session_id or session_id in seen_sessions:
+                skipped += 1
+                continue
+            seen_sessions.add(session_id)
+
+            external_id = f"relay-session:{session_id}"
+            if _event_exists(session, external_id, "autopilot_checkout_intent_followup_sent"):
+                skipped += 1
+                continue
+            if not lead.email or _paid_for_email(session, lead.email):
+                skipped += 1
+                continue
+            candidates.append((None, lead))
+
     for event, lead in candidates:
         try:
-            session_id = (event.session_id or "").strip()
+            session_id = ((event.session_id if event is not None else lead.session_id) or "").strip()
             external_id = f"relay-session:{session_id}"
             blocks = [
                 _p("You opened the paid Relay packet path."),
@@ -649,7 +672,7 @@ def run_checkout_intent_followup_sweep(hours: int = 1) -> dict[str, Any]:
                 event_type="autopilot_checkout_intent_followup_sent",
                 prospect_external_id=external_id,
                 payload={
-                    "relay_event_id": event.id,
+                    "relay_event_id": event.id if event is not None else None,
                     "relay_lead_id": lead.id,
                     "session_id": session_id,
                     "hours": hours,

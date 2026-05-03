@@ -210,6 +210,29 @@ def _due_followup_counts(session: Session, *, now: datetime) -> dict[str, int]:
             continue
         checkout_due += 1
 
+    checkout_leads = session.execute(
+        select(RelayIntentLead)
+        .where(RelayIntentLead.source.ilike("%checkout_intent%"))
+        .where(RelayIntentLead.created_at <= checkout_cutoff)
+        .limit(100)
+    ).scalars().all()
+    for lead in checkout_leads:
+        session_id = (lead.session_id or "").strip()
+        if not session_id or session_id in seen_sessions:
+            continue
+        seen_sessions.add(session_id)
+        exists = session.execute(
+            select(AcquisitionEvent.id)
+            .where(AcquisitionEvent.prospect_external_id == f"relay-session:{session_id}")
+            .where(AcquisitionEvent.event_type == "autopilot_checkout_intent_followup_sent")
+            .limit(1)
+        ).scalar_one_or_none()
+        if exists is not None:
+            continue
+        if not lead.email or _paid_for_email(session, lead.email):
+            continue
+        checkout_due += 1
+
     return {
         "messy_notes_due": messy_due,
         "sample_request_due": sample_due,
