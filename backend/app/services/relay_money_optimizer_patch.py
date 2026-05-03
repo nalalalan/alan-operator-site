@@ -774,9 +774,16 @@ def optimized_run_custom_outreach_cycle() -> dict[str, Any]:
 
     send_result = optimized_send_due_sequence_messages()
     reply_result = outreach.poll_reply_mailbox()
+    try:
+        from app.services.post_purchase_autopilot import run_inbound_conversion_sweep
+
+        inbound_conversion_result = run_inbound_conversion_sweep()
+    except Exception as exc:
+        inbound_conversion_result = {"status": "error", "summary": str(exc)}
     return {
         "send_result": send_result,
         "reply_result": reply_result,
+        "inbound_conversion_result": inbound_conversion_result,
         "status": outreach.outreach_status(),
     }
 

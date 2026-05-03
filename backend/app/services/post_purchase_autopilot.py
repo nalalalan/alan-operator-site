@@ -52,6 +52,25 @@ def _find_prospect_by_email(session: Session, email: str) -> AcquisitionProspect
     return session.execute(stmt).scalar_one_or_none()
 
 
+def _paid_for_email(session: Session, email: str) -> bool:
+    prospect = _find_prospect_by_email(session, email)
+    if prospect is not None and prospect.stripe_status == "paid":
+        return True
+
+    rows = session.execute(
+        select(AcquisitionEvent.payload_json)
+        .where(AcquisitionEvent.event_type == "stripe_paid")
+        .order_by(AcquisitionEvent.created_at.desc())
+        .limit(100)
+    ).scalars().all()
+    for raw in rows:
+        payload = _safe_json(raw)
+        blob = json.dumps(payload, ensure_ascii=False).lower()
+        if email and email.lower() in blob:
+            return True
+    return False
+
+
 def _ensure_paid_prospect(session: Session, email: str) -> AcquisitionProspect:
     prospect = _find_prospect_by_email(session, email)
     if prospect is None:
@@ -220,6 +239,36 @@ def _send_html_email(to_email: str, subject: str, blocks: list[str]) -> dict[str
 
 def _p(text: str) -> str:
     return f"<p style='margin:0 0 16px 0'>{html.escape(text)}</p>"
+
+
+def _a(label: str, url: str) -> str:
+    return (
+        "<p style='margin:0 0 16px 0'>"
+        f"<a href='{html.escape(url, quote=True)}' style='color:#a05f2f;font-weight:700'>"
+        f"{html.escape(label)}</a></p>"
+    )
+
+
+def _send_conversion_email(
+    *,
+    to_email: str,
+    subject: str,
+    blocks: list[str],
+    event_type: str,
+    prospect_external_id: str,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    send_result = _send_html_email(to_email, subject, blocks)
+    with _session() as session:
+        _log_event(
+            session,
+            event_type,
+            prospect_external_id,
+            f"sent {event_type}",
+            {"email": to_email, "send_result": send_result, **payload},
+        )
+        session.commit()
+    return {"status": "sent", "send_result": send_result}
 
 
 def send_paid_onboarding_for_email(email: str) -> dict[str, Any]:
@@ -398,3 +447,146 @@ def run_post_delivery_upsell_sweep(hours: int = 24) -> dict[str, Any]:
         session.commit()
 
     return {"status": "ok", "sent_count": sent_count, "skipped": skipped, "hours": hours}
+
+
+def run_messy_notes_checkout_followup_sweep(hours: int = 2) -> dict[str, Any]:
+    cutoff = datetime.utcnow() - timedelta(hours=hours)
+    sent_count = 0
+    skipped = 0
+    failures: list[str] = []
+
+    with _session() as session:
+        leads = session.execute(
+            select(RelayIntentLead)
+            .where(RelayIntentLead.source.ilike("%messy_notes%"))
+            .where(RelayIntentLead.created_at <= cutoff)
+            .order_by(RelayIntentLead.created_at.asc())
+            .limit(50)
+        ).scalars().all()
+
+        send_candidates: list[RelayIntentLead] = []
+        for lead in leads:
+            email = (lead.email or "").strip().lower()
+            external_id = f"relay-lead:{lead.id}"
+            if not email:
+                skipped += 1
+                continue
+            if _paid_for_email(session, email):
+                skipped += 1
+                continue
+            if _event_exists(session, external_id, "autopilot_messy_notes_checkout_followup_sent"):
+                skipped += 1
+                continue
+            send_candidates.append(lead)
+
+    for lead in send_candidates:
+        try:
+            external_id = f"relay-lead:{lead.id}"
+            blocks = [
+                _p("I have your messy notes."),
+                _p(
+                    "If you want me to turn that into the actual packet, the paid one-call test is the next step."
+                ),
+                _a("Start the $40 packet", settings.packet_checkout_url),
+                _p("I will turn it into the recap, next steps, follow-up draft, open questions, and CRM-ready update."),
+                _p("- Alan"),
+            ]
+            _send_conversion_email(
+                to_email=lead.email,
+                subject="Want me to turn this into the packet?",
+                blocks=blocks,
+                event_type="autopilot_messy_notes_checkout_followup_sent",
+                prospect_external_id=external_id,
+                payload={"relay_lead_id": lead.id, "hours": hours},
+            )
+            sent_count += 1
+        except Exception as exc:
+            failures.append(str(exc)[:500])
+
+    return {
+        "status": "ok",
+        "sent_count": sent_count,
+        "skipped": skipped,
+        "failures": failures,
+        "hours": hours,
+    }
+
+
+def run_sample_request_notes_followup_sweep(hours: int = 24) -> dict[str, Any]:
+    cutoff = datetime.utcnow() - timedelta(hours=hours)
+    sent_count = 0
+    skipped = 0
+    failures: list[str] = []
+
+    with _session() as session:
+        leads = session.execute(
+            select(RelayIntentLead)
+            .where(RelayIntentLead.source.ilike("%sample%"))
+            .where(RelayIntentLead.created_at <= cutoff)
+            .order_by(RelayIntentLead.created_at.asc())
+            .limit(50)
+        ).scalars().all()
+
+        send_candidates: list[RelayIntentLead] = []
+        for lead in leads:
+            email = (lead.email or "").strip().lower()
+            external_id = f"relay-lead:{lead.id}"
+            if not email:
+                skipped += 1
+                continue
+            if _paid_for_email(session, email):
+                skipped += 1
+                continue
+            if _event_exists(session, external_id, "autopilot_sample_notes_followup_sent"):
+                skipped += 1
+                continue
+            messy_notes = session.execute(
+                select(RelayIntentLead.id)
+                .where(RelayIntentLead.email == email)
+                .where(RelayIntentLead.source.ilike("%messy_notes%"))
+                .limit(1)
+            ).scalar_one_or_none()
+            if messy_notes is not None:
+                skipped += 1
+                continue
+            send_candidates.append(lead)
+
+    for lead in send_candidates:
+        try:
+            external_id = f"relay-lead:{lead.id}"
+            blocks = [
+                _p("You asked for the Relay sample."),
+                _p("The easiest real test is one messy call note. Send rough bullets, a transcript, or an ugly notes dump."),
+                _a("Send messy notes", _notes_url()),
+                _p("If you already know you want the paid packet, the one-call test is $40."),
+                _a("Start the $40 packet", settings.packet_checkout_url),
+                _p("- Alan"),
+            ]
+            _send_conversion_email(
+                to_email=lead.email,
+                subject="Have one messy call to test?",
+                blocks=blocks,
+                event_type="autopilot_sample_notes_followup_sent",
+                prospect_external_id=external_id,
+                payload={"relay_lead_id": lead.id, "hours": hours},
+            )
+            sent_count += 1
+        except Exception as exc:
+            failures.append(str(exc)[:500])
+
+    return {
+        "status": "ok",
+        "sent_count": sent_count,
+        "skipped": skipped,
+        "failures": failures,
+        "hours": hours,
+    }
+
+
+def run_inbound_conversion_sweep() -> dict[str, Any]:
+    messy_hours = int(os.getenv("RELAY_MESSY_NOTES_FOLLOWUP_HOURS", "2") or "2")
+    sample_hours = int(os.getenv("RELAY_SAMPLE_FOLLOWUP_HOURS", "24") or "24")
+    return {
+        "messy_notes_followup": run_messy_notes_checkout_followup_sweep(hours=messy_hours),
+        "sample_request_followup": run_sample_request_notes_followup_sweep(hours=sample_hours),
+    }
