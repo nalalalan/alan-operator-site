@@ -275,6 +275,9 @@ def _compact_status_for_loop(status: dict[str, Any]) -> dict[str, Any]:
         "replies_today",
         "daily_send_cap",
         "send_window_is_open",
+        "send_window_reason",
+        "send_window_next_open_local",
+        "send_window_business_days_only",
         "direct_inbox_count",
         "generic_inbox_count",
         "direct_due_count",
@@ -444,6 +447,9 @@ def _next_money_move(status: dict[str, Any]) -> str:
     if int(status.get("direct_due_count") or 0) > 0 and int(status.get("cap_remaining") or 0) > 0:
         if status.get("send_window_is_open"):
             return "Send direct-inbox leads now; keep generic inboxes paused."
+        next_open = str(status.get("send_window_next_open_local") or "").strip()
+        if next_open:
+            return f"Direct leads are ready; next send window opens {next_open}."
         return "Direct leads are ready; wait for the send window."
     if int(status.get("generic_paused_count") or 0) > 0:
         return "Generic inboxes are paused; refill with Apollo people leads."

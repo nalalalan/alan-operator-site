@@ -321,6 +321,30 @@ def _send_tz() -> ZoneInfo:
         return ZoneInfo("America/New_York")
 
 
+def _bool_env(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name, "").strip().lower()
+    if not raw:
+        return default
+    return raw in {"1", "true", "yes", "y", "on"}
+
+
+def _next_allowed_send_start(
+    now_local: datetime,
+    *,
+    start_hour: int,
+    start_minute: int,
+    business_days_only: bool,
+) -> datetime:
+    candidate = now_local.replace(hour=start_hour, minute=start_minute, second=0, microsecond=0)
+    if candidate <= now_local:
+        candidate = candidate + timedelta(days=1)
+
+    while business_days_only and candidate.weekday() >= 5:
+        candidate = candidate + timedelta(days=1)
+
+    return candidate
+
+
 def _send_window_status() -> dict[str, Any]:
     tz = _send_tz()
     now_local = datetime.now(tz)
@@ -332,8 +356,37 @@ def _send_window_status() -> dict[str, Any]:
 
     start_local = now_local.replace(hour=start_hour, minute=start_minute, second=0, microsecond=0)
     end_local = now_local.replace(hour=end_hour, minute=end_minute, second=0, microsecond=0)
+    business_days_only = _bool_env("COLD_SEND_BUSINESS_DAYS_ONLY", True)
+    is_business_day = now_local.weekday() < 5
 
     is_open = start_local <= now_local < end_local
+    if business_days_only:
+        is_open = is_open and is_business_day
+
+    if is_open:
+        next_open_local = now_local
+        reason = "open"
+    elif business_days_only and not is_business_day:
+        next_open_local = _next_allowed_send_start(
+            now_local,
+            start_hour=start_hour,
+            start_minute=start_minute,
+            business_days_only=business_days_only,
+        )
+        reason = "weekend"
+    elif now_local < start_local:
+        next_open_local = start_local
+        reason = "before_window"
+    else:
+        next_open_local = _next_allowed_send_start(
+            now_local,
+            start_hour=start_hour,
+            start_minute=start_minute,
+            business_days_only=business_days_only,
+        )
+        reason = "after_window"
+
+    seconds_until_open = max(int((next_open_local - now_local).total_seconds()), 0)
 
     return {
         "timezone": str(tz),
@@ -341,6 +394,11 @@ def _send_window_status() -> dict[str, Any]:
         "start_local": start_local.isoformat(),
         "end_local": end_local.isoformat(),
         "is_open": is_open,
+        "business_days_only": business_days_only,
+        "is_business_day": is_business_day,
+        "next_open_local": next_open_local.isoformat(),
+        "seconds_until_open": seconds_until_open,
+        "reason": reason,
     }
 
 
@@ -1182,6 +1240,11 @@ def outreach_status() -> dict[str, Any]:
         "send_window_start_local": window["start_local"],
         "send_window_end_local": window["end_local"],
         "send_window_is_open": window["is_open"],
+        "send_window_business_days_only": window["business_days_only"],
+        "send_window_is_business_day": window["is_business_day"],
+        "send_window_next_open_local": window["next_open_local"],
+        "send_window_seconds_until_open": window["seconds_until_open"],
+        "send_window_reason": window["reason"],
     }
 
 
