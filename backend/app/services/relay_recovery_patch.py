@@ -587,7 +587,8 @@ def _log_money_loop_tick(result: dict[str, Any]) -> None:
             f"post_refill_outreach={_status_label(result.get('post_refill_outreach_result'))} "
             f"success={_status_label(result.get('success_control'))} "
             f"success_after={_status_label(result.get('success_control_after_outreach'))} "
-            f"sent_this_tick={int(result.get('sent_this_tick') or 0)}"
+            f"sent_this_tick={int(result.get('sent_this_tick') or 0)} "
+            f"active_delta={int(result.get('active_sample_delta_this_tick') or 0)}"
         )
         with SessionLocal() as session:
             session.add(
@@ -1201,6 +1202,8 @@ async def _relay_money_loop_tick(
     status = await asyncio.to_thread(outreach.outreach_status)
     direct_due = int(status.get("direct_due_count") or 0)
     active_experiment_needs_sample = bool(status.get("active_experiment_needs_sample"))
+    active_sample_sends_before = int(status.get("active_experiment_sends") or 0)
+    active_sample_target_before = int(status.get("active_experiment_sample_target") or 0)
     active_experiment_new_due = int(status.get("active_experiment_new_due_count") or 0)
     refill_due = active_experiment_new_due if active_experiment_needs_sample else direct_due
     sendable_due, sendable_due_mode = _sendable_due_for_current_goal(status)
@@ -1472,6 +1475,12 @@ async def _relay_money_loop_tick(
             "reason": "no_outreach_sent",
             "phase": "after_outreach_send",
         }
+    final_status_after = _compact_status_for_loop(await asyncio.to_thread(outreach.outreach_status))
+    active_sample_sends_after = int(final_status_after.get("active_experiment_sends") or 0)
+    active_sample_target_after = int(
+        final_status_after.get("active_experiment_sample_target") or active_sample_target_before or 0
+    )
+    active_sample_delta_this_tick = max(active_sample_sends_after - active_sample_sends_before, 0)
     result = {
         "refill_result": refill_result,
         "outreach_result": outreach_result,
@@ -1481,6 +1490,13 @@ async def _relay_money_loop_tick(
         "success_control_phase": "after_outreach_send" if sent_this_tick > 0 else "before_outreach",
         "sent_this_tick": sent_this_tick,
         "direct_due_before": direct_due,
+        "active_sample_sends_before": active_sample_sends_before,
+        "active_sample_sends_after": active_sample_sends_after,
+        "active_sample_delta_this_tick": active_sample_delta_this_tick,
+        "active_sample_target": active_sample_target_after,
+        "active_sample_progress_after": (
+            f"{active_sample_sends_after}/{active_sample_target_after}" if active_sample_target_after else ""
+        ),
         "active_experiment_needs_sample": active_experiment_needs_sample,
         "active_experiment_new_due_before": active_experiment_new_due,
         "sendable_due_before": sendable_due,
@@ -1496,7 +1512,7 @@ async def _relay_money_loop_tick(
         "cap_remaining_before": cap_remaining,
         "force_refill": force_refill,
         "send_live": send_live,
-        "status_after": _compact_status_for_loop(await asyncio.to_thread(outreach.outreach_status)),
+        "status_after": final_status_after,
     }
     _log_money_loop_tick(result)
     return result
@@ -1617,6 +1633,13 @@ def _money_loop_sleep_seconds(result: dict[str, Any] | None, default_interval: i
             return max(min(seconds_until_open + 5, default_interval), 5), "align_with_send_window"
         if seconds_until_open <= 3600:
             return min(default_interval, 300), "pre_send_window_ready"
+
+    try:
+        active_sample_delta = int((result or {}).get("active_sample_delta_this_tick") or 0)
+    except Exception:
+        active_sample_delta = 0
+    if active_sample_delta > 0:
+        return min(default_interval, 300), "fresh_active_sample_watch"
 
     sent_today = int(status_after.get("sent_today") or 0)
     if sent_today > 0:
