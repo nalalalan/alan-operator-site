@@ -136,6 +136,137 @@ OPTIMIZED_STEP_TEMPLATES = [
     ),
 ]
 
+OPTIMIZED_STEP_TEMPLATE_VARIANTS = {
+    "control_sample_ask": OPTIMIZED_STEP_TEMPLATES,
+    "sample_first_plain": [
+        StepTemplate(
+            step_number=1,
+            subject="client call follow-up sample",
+            body=(
+                "Hey - quick question.\n\n"
+                "I built Relay to turn messy notes from one client or sales call into the finished recap, follow-up draft, next steps, and CRM-ready update.\n\n"
+                "Sample packet:\n"
+                "{sample_url}\n\n"
+                "If one call is sitting half-finished at {company_name}, you can send the rough notes here:\n"
+                "{notes_url}\n\n"
+                "Worth testing on one real call, or not really?\n\n"
+                "- Alan"
+            ),
+            delay_after_prev_days=0,
+        ),
+        StepTemplate(
+            step_number=2,
+            subject="re: client call follow-up sample",
+            body=(
+                "Following up once.\n\n"
+                "The sample shows the format. The useful part is getting the actual post-call cleanup finished when the team is busy.\n\n"
+                "Send one messy note here and I will look at whether it fits:\n"
+                "{notes_url}\n\n"
+                "If it is a fit, the paid one-call packet is $40.\n\n"
+                "- Alan"
+            ),
+            delay_after_prev_days=1,
+        ),
+        StepTemplate(
+            step_number=3,
+            subject="re: client call follow-up sample",
+            body=(
+                "Last note from me.\n\n"
+                "If the sample is not relevant, no worries.\n\n"
+                "If one real call is worth testing, send rough notes here:\n"
+                "{notes_url}\n\n"
+                "Or start the $40 packet directly here:\n"
+                "{packet_checkout_url}\n\n"
+                "- Alan"
+            ),
+            delay_after_prev_days=2,
+        ),
+    ],
+    "pain_owner_direct": [
+        StepTemplate(
+            step_number=1,
+            subject="who owns after-call cleanup?",
+            body=(
+                "Hey - quick question for {company_name}.\n\n"
+                "After a strong client or sales call, who owns the recap, next steps, follow-up email, and CRM update?\n\n"
+                "I built Relay for that cleanup. Your team sends rough notes, and the finished handoff comes back ready to use.\n\n"
+                "If nobody clearly owns that job, you can send one messy note here and I will look at it:\n"
+                "{notes_url}\n\n"
+                "- Alan"
+            ),
+            delay_after_prev_days=0,
+        ),
+        StepTemplate(
+            step_number=2,
+            subject="re: who owns after-call cleanup?",
+            body=(
+                "Following up once with the concrete version.\n\n"
+                "Relay is for the gap after a good call: the work is obvious, but nobody wants to turn rough notes into a clean client-ready handoff.\n\n"
+                "Sample:\n"
+                "{sample_url}\n\n"
+                "Worth testing on one real call?\n"
+                "{notes_url}\n\n"
+                "- Alan"
+            ),
+            delay_after_prev_days=1,
+        ),
+        StepTemplate(
+            step_number=3,
+            subject="re: who owns after-call cleanup?",
+            body=(
+                "Last note from me.\n\n"
+                "If post-call cleanup is already owned and fast, no worries.\n\n"
+                "If one call is worth testing, send rough notes here:\n"
+                "{notes_url}\n\n"
+                "Or start the $40 packet here:\n"
+                "{packet_checkout_url}\n\n"
+                "- Alan"
+            ),
+            delay_after_prev_days=2,
+        ),
+    ],
+    "paid_test_explicit": [
+        StepTemplate(
+            step_number=1,
+            subject="one-call cleanup test",
+            body=(
+                "Hey - quick question.\n\n"
+                "I am testing a $40 done-for-you Relay: send rough notes from one sales or client call, get back the recap, follow-up draft, next steps, and CRM-ready update.\n\n"
+                "Sample:\n"
+                "{sample_url}\n\n"
+                "If one messy call from this week is worth trying, send it here:\n"
+                "{notes_url}\n\n"
+                "- Alan"
+            ),
+            delay_after_prev_days=0,
+        ),
+        StepTemplate(
+            step_number=2,
+            subject="re: one-call cleanup test",
+            body=(
+                "Following up once.\n\n"
+                "The test is intentionally small: one real call, $40, finished handoff back to you.\n\n"
+                "If it saves even one delayed follow-up, it should be obvious quickly.\n\n"
+                "{packet_checkout_url}\n\n"
+                "- Alan"
+            ),
+            delay_after_prev_days=1,
+        ),
+        StepTemplate(
+            step_number=3,
+            subject="re: one-call cleanup test",
+            body=(
+                "Last note from me.\n\n"
+                "If this is not relevant, no worries - I will not keep chasing.\n\n"
+                "If it is relevant later, the sample is here:\n"
+                "{sample_url}\n\n"
+                "- Alan"
+            ),
+            delay_after_prev_days=2,
+        ),
+    ],
+}
+
 _applied = False
 _original_outreach_status: Callable[[], dict[str, Any]] | None = None
 
@@ -997,10 +1128,7 @@ def apply_relay_money_optimizer_patch() -> None:
     outreach.STEP_TEMPLATES = OPTIMIZED_STEP_TEMPLATES
     outreach.STEP_TEMPLATE_VARIANTS = {
         **(getattr(outreach, "STEP_TEMPLATE_VARIANTS", {}) or {}),
-        "control_sample_ask": OPTIMIZED_STEP_TEMPLATES,
-        "sample_first_plain": OPTIMIZED_STEP_TEMPLATES,
-        "pain_owner_direct": OPTIMIZED_STEP_TEMPLATES,
-        "paid_test_explicit": OPTIMIZED_STEP_TEMPLATES,
+        **OPTIMIZED_STEP_TEMPLATE_VARIANTS,
     }
     outreach._landing_page_url = _landing_page_url
     outreach._sample_url = _sample_url
