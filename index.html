@@ -1026,12 +1026,12 @@
           <div class="hero-main">
             <div class="eyebrow">Same-day call cleanup for agency founders</div>
             <h1 class="hero-title">Send messy sales-call notes. Get the finished follow-up packet.</h1>
-            <p class="hero-copy">Relay turns one real call into a client-ready recap, follow-up email, CRM notes, and next-step checklist. Send notes first. Pay after I confirm I can clean it up.</p>
+            <p class="hero-copy">Relay turns one real call into a client-ready recap, follow-up email, CRM notes, and next-step checklist. Send notes first, or start the $40 packet if you already know you want it done.</p>
             <div class="hero-actions">
               <a class="btn btn-primary note-intake-link" href="#send-notes">Send messy notes</a>
-              <a class="btn btn-secondary" href="sample.pdf" target="_blank" rel="noopener">Open sample PDF</a>
+              <a class="btn btn-secondary checkout-link" href="https://buy.stripe.com/bJeaEZb4mf6de64dSi2Nq02" target="_blank" rel="noopener">Start $40 packet</a>
             </div>
-            <p class="hero-proofline"><strong>No checkout wall first.</strong> Send one messy note dump. I review it, confirm the relay, then ask for payment.</p>
+            <p class="hero-proofline"><strong>Two clean paths.</strong> Send one messy note dump first, or pay now and Relay moves the packet forward automatically.</p>
           </div>
 
           <div class="hero-side">
@@ -1147,7 +1147,7 @@
         <div class="section-heading">
           <div class="section-kicker">How it works</div>
           <h2 class="section-title">Three moves. That's it.</h2>
-          <p class="section-subtitle">This is now notes-first. No one has to pay before the call notes are real enough to clean up.</p>
+          <p class="section-subtitle">This is notes-first, with a direct paid path when the buyer already wants the packet.</p>
         </div>
         <div class="steps-grid">
           <article class="step-card">
@@ -1157,8 +1157,8 @@
           </article>
           <article class="step-card">
             <div class="step-num">2</div>
-            <h3>I confirm the relay</h3>
-            <p>If the notes are enough to work from, I reply with the fixed scope and payment link.</p>
+            <h3>Relay sends the next step</h3>
+            <p>If the notes are enough to work from, Relay sends the paid packet path and keeps the handoff moving.</p>
           </article>
           <article class="step-card">
             <div class="step-num">3</div>
@@ -1211,12 +1211,12 @@
       <div>
         <div class="section-kicker">Notes-first intake</div>
         <h2 class="relay-intent-title">Send one messy call note.</h2>
-        <p class="relay-intent-copy">Agency owners and founders: paste the messy version. I will tell you if I can turn it into a finished relay today. If yes, I send the payment link and get it done.</p>
+        <p class="relay-intent-copy">Agency owners and founders: paste the messy version. Relay stores the notes, sends the paid packet path, and keeps following up without making you manage another tool.</p>
       </div>
       <form class="relay-intent-form" data-relay-lead-source="messy_notes">
         <input name="email" type="email" autocomplete="email" inputmode="email" placeholder="work email" required />
         <textarea name="notes" placeholder="Paste messy call notes, screenshot text, buyer context, or what you remember. Rough is fine." required></textarea>
-        <button class="btn btn-primary" type="submit">Send notes</button>
+        <button class="btn btn-primary" type="submit">Send notes and get next step</button>
         <div class="relay-intent-status" aria-live="polite"></div>
       </form>
     </div>
@@ -1231,11 +1231,11 @@
           <div>
             <div class="section-kicker">Clear offer</div>
             <h2 class="cta-title">One call becomes one finished follow-up packet.</h2>
-            <p class="cta-subcopy">You send the rough notes. I return the recap, follow-up email, CRM notes, and next-step checklist. The primary path is to send notes first; checkout is here if you already know you want the relay.</p>
+            <p class="cta-subcopy">You send the rough notes. Relay returns the recap, follow-up email, CRM notes, and next-step checklist. Send notes first, or start the paid packet now.</p>
           </div>
           <div class="cta-actions">
             <a class="btn btn-primary note-intake-link" href="#send-notes">Send messy notes</a>
-            <a class="btn btn-secondary checkout-link" href="#buy">Pay for one relay</a>
+            <a class="btn btn-secondary checkout-link" href="https://buy.stripe.com/bJeaEZb4mf6de64dSi2Nq02" target="_blank" rel="noopener">Start $40 packet</a>
           </div>
         </div>
       </div>
@@ -1434,7 +1434,7 @@
             title: document.title,
             notes: notes.slice(0, 5000),
             note_length: notes.length,
-            offer: 'notes_first_manual_followup'
+            offer: 'notes_first_autonomous_checkout_followup'
           }
         };
 
@@ -1442,7 +1442,7 @@
           track('lead_capture_submit', { email_domain: email.split('@')[1] || '', source: payload.source });
           var emailResult = result && result.sample_email ? result.sample_email : {};
           if (result && result.ok && payload.source === 'messy_notes') {
-            if (status) status.textContent = 'notes received. Alan will reply with next step.';
+            if (status) status.textContent = 'notes received. check your inbox for the next step.';
             form.reset();
           } else if (result && result.ok && emailResult.status === 'sent') {
             if (status) status.textContent = 'sample sent. check your inbox.';
