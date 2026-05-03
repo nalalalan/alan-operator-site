@@ -1564,8 +1564,17 @@ def _money_loop_sleep_seconds(result: dict[str, Any] | None, default_interval: i
     sendable_due, _ = _sendable_due_for_current_goal(status_after)
     cap_remaining = int(status_after.get("cap_remaining") or 0)
     window_open = bool(status_after.get("send_window_is_open"))
+    try:
+        seconds_until_open = int(status_after.get("send_window_seconds_until_open") or 0)
+    except Exception:
+        seconds_until_open = 0
     if window_open and sendable_due > 0 and cap_remaining > 0:
         return min(default_interval, 120), "active_send_window"
+    if sendable_due > 0 and cap_remaining > 0 and seconds_until_open > 0:
+        if seconds_until_open <= default_interval:
+            return max(min(seconds_until_open + 5, default_interval), 5), "align_with_send_window"
+        if seconds_until_open <= 3600:
+            return min(default_interval, 300), "pre_send_window_ready"
 
     sent_today = int(status_after.get("sent_today") or 0)
     if sent_today > 0:
@@ -1580,10 +1589,6 @@ def _money_loop_sleep_seconds(result: dict[str, Any] | None, default_interval: i
         if active_target > 0 and active_due < active_target:
             return min(default_interval, 300), "active_experiment_buffering"
 
-    try:
-        seconds_until_open = int(status_after.get("send_window_seconds_until_open") or 0)
-    except Exception:
-        seconds_until_open = 0
     if 0 < seconds_until_open <= default_interval:
         return max(min(seconds_until_open + 5, default_interval), 5), "align_with_send_window"
 
