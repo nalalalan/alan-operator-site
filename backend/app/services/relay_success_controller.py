@@ -1088,6 +1088,41 @@ def _run_outbound_experiment_review_if_needed(bottleneck: str, snapshot: dict[st
     }
 
 
+def _safe_int(value: Any) -> int:
+    try:
+        return int(value or 0)
+    except Exception:
+        return 0
+
+
+def _conversion_action_summary(actions: dict[str, Any]) -> dict[str, Any]:
+    sent_by_action: dict[str, int] = {}
+    failures_by_action: dict[str, int] = {}
+
+    def walk(name: str, value: Any) -> None:
+        if not isinstance(value, dict):
+            return
+        sent_count = _safe_int(value.get("sent_count"))
+        if sent_count > 0:
+            sent_by_action[name] = sent_by_action.get(name, 0) + sent_count
+        failures = value.get("failures")
+        if isinstance(failures, list) and failures:
+            failures_by_action[name] = failures_by_action.get(name, 0) + len(failures)
+        for child_name, child_value in value.items():
+            if isinstance(child_value, dict):
+                walk(f"{name}.{child_name}", child_value)
+
+    for action_name, action_result in actions.items():
+        walk(action_name, action_result)
+
+    return {
+        "sent_count": sum(sent_by_action.values()),
+        "failure_count": sum(failures_by_action.values()),
+        "sent_by_action": sent_by_action,
+        "failures_by_action": failures_by_action,
+    }
+
+
 def run_relay_success_control_tick() -> dict[str, Any]:
     before = relay_success_snapshot(days=7)
     bottleneck = _bottleneck(before)
@@ -1103,6 +1138,7 @@ def run_relay_success_control_tick() -> dict[str, Any]:
         hours=int(os.getenv("OPS_UPSELL_DELAY_HOURS", "24") or "24")
     )
     actions["outbound_experiment_review"] = _run_outbound_experiment_review_if_needed(bottleneck, before)
+    conversion_actions = _conversion_action_summary(actions)
 
     after = relay_success_snapshot(days=7)
     result = {
@@ -1111,6 +1147,7 @@ def run_relay_success_control_tick() -> dict[str, Any]:
         "next_action": _next_action(bottleneck),
         "before": before,
         "actions": actions,
+        "conversion_actions": conversion_actions,
         "after": after,
         "created_at": _now().isoformat(),
     }

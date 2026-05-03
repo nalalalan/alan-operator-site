@@ -1069,6 +1069,16 @@ def _compact_money_loop_payload(payload: dict[str, Any] | None) -> dict[str, Any
         if isinstance(payload.get("success_control_after_outreach"), dict)
         else {}
     )
+    success_conversion = (
+        success_control.get("conversion_actions")
+        if isinstance(success_control.get("conversion_actions"), dict)
+        else {}
+    )
+    success_after_conversion = (
+        success_control_after.get("conversion_actions")
+        if isinstance(success_control_after.get("conversion_actions"), dict)
+        else {}
+    )
     status_after = payload.get("status_after") if isinstance(payload.get("status_after"), dict) else {}
     refill_backoff = (
         payload.get("refill_timeout_backoff")
@@ -1156,8 +1166,12 @@ def _compact_money_loop_payload(payload: dict[str, Any] | None) -> dict[str, Any
         else None,
         "success_control_status": success_control.get("status"),
         "success_control_bottleneck": success_control.get("bottleneck"),
+        "success_control_conversion_sent": success_conversion.get("sent_count"),
+        "success_control_conversion_failures": success_conversion.get("failure_count"),
         "success_control_after_status": success_control_after.get("status"),
         "success_control_after_bottleneck": success_control_after.get("bottleneck"),
+        "success_control_after_conversion_sent": success_after_conversion.get("sent_count"),
+        "success_control_after_conversion_failures": success_after_conversion.get("failure_count"),
         "success_control_phase": payload.get("success_control_phase"),
         "status_after": {
             "active_experiment_variant": status_after.get("active_experiment_variant"),

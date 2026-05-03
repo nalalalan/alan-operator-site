@@ -1572,6 +1572,19 @@ def _money_loop_success_sleep(result: dict[str, Any] | None, default_interval: i
         return min(default_interval, 120), "buyer_signal_watch"
     if bottleneck in {"messy_notes_to_payment", "sample_to_notes"}:
         return min(default_interval, 300), "conversion_followup_due"
+    conversion_actions = (
+        success_after.get("conversion_actions")
+        if isinstance(success_after.get("conversion_actions"), dict)
+        else success_before.get("conversion_actions")
+        if isinstance(success_before.get("conversion_actions"), dict)
+        else {}
+    )
+    try:
+        sent_count = int(conversion_actions.get("sent_count") or 0)
+    except Exception:
+        sent_count = 0
+    if sent_count > 0:
+        return min(default_interval, 300), "conversion_action_watch"
     return None
 
 
