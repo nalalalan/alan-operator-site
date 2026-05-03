@@ -621,7 +621,7 @@ async def _relay_money_loop_tick(
     import app.services.autonomous_ops as ops
     import app.services.custom_outreach as outreach
 
-    status = outreach.outreach_status()
+    status = await asyncio.to_thread(outreach.outreach_status)
     direct_due = int(status.get("direct_due_count") or 0)
     active_experiment_needs_sample = bool(status.get("active_experiment_needs_sample"))
     active_experiment_new_due = int(status.get("active_experiment_new_due_count") or 0)
@@ -689,7 +689,7 @@ async def _relay_money_loop_tick(
         outreach_result = {
             "status": "skipped",
             "reason": "send_live_false",
-            "snapshot": _compact_status_for_loop(outreach.outreach_status()),
+            "snapshot": _compact_status_for_loop(await asyncio.to_thread(outreach.outreach_status)),
         }
     result = {
         "refill_result": refill_result,
@@ -703,7 +703,7 @@ async def _relay_money_loop_tick(
         "cap_remaining_before": cap_remaining,
         "force_refill": force_refill,
         "send_live": send_live,
-        "status_after": _compact_status_for_loop(outreach.outreach_status()),
+        "status_after": _compact_status_for_loop(await asyncio.to_thread(outreach.outreach_status)),
     }
     _log_money_loop_tick(result)
     return result
@@ -711,7 +711,8 @@ async def _relay_money_loop_tick(
 
 async def _relay_money_loop() -> None:
     interval = max(int(os.getenv("AO_RELAY_MONEY_LOOP_INTERVAL_SECONDS", "900") or 900), 120)
-    await asyncio.sleep(5)
+    startup_delay = max(int(os.getenv("AO_RELAY_MONEY_LOOP_STARTUP_DELAY_SECONDS", "30") or 30), 5)
+    await asyncio.sleep(startup_delay)
     while True:
         try:
             _money_loop_state["running"] = True
