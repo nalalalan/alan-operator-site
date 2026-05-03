@@ -862,6 +862,8 @@
       const expectedNextWindowSends = Number(launch.expected_next_window_sends || moneySystem.expected_next_window_sends || plan.expected_next_window_sends || 0);
       const expectedProgressAfterNextWindow = launch.expected_progress_after_next_window || moneySystem.expected_progress_after_next_window || plan.expected_progress_after_next_window || "";
       const nextWindowSuccessCriterion = launch.next_window_success_criterion || moneySystem.next_window_success_criterion || plan.next_window_success_criterion || "";
+      const nextWindowAuditAt = launch.next_window_audit_at || moneySystem.next_window_audit_at || plan.next_window_audit_at || "";
+      const windowExecutionState = launch.window_execution_state || moneySystem.window_execution_state || plan.window_execution_state || "";
       const blockers = Array.isArray(launch.blockers) ? launch.blockers : [];
 
       if (mode) {
@@ -877,6 +879,8 @@
           expectedNextWindowSends,
           expectedProgressAfterNextWindow,
           nextWindowSuccessCriterion,
+          nextWindowAuditAt,
+          windowExecutionState,
           planSummary: proofTarget,
           successMetric,
           interruptRule,
@@ -899,6 +903,8 @@
           expectedNextWindowSends: 0,
           expectedProgressAfterNextWindow: "",
           nextWindowSuccessCriterion: "",
+          nextWindowAuditAt: "",
+          windowExecutionState: "",
           planSummary: "",
           successMetric: "",
           interruptRule: "",
@@ -917,6 +923,8 @@
         expectedNextWindowSends: Number(plan.expected_next_window_sends || 0),
         expectedProgressAfterNextWindow: plan.expected_progress_after_next_window || "",
         nextWindowSuccessCriterion: plan.next_window_success_criterion || "",
+        nextWindowAuditAt: plan.next_window_audit_at || "",
+        windowExecutionState: plan.window_execution_state || "",
         planSummary: plan.summary || "",
         successMetric: "",
         interruptRule: "",
@@ -1065,8 +1073,9 @@
         const proof = operator.nextWindowSuccessCriterion
           ? ` Next proof: ${operator.nextWindowSuccessCriterion}.`
           : operator.planSummary ? ` Proof target: ${operator.planSummary}.` : "";
+        const audit = operator.nextWindowAuditAt ? ` Audit after: ${fmtMoment(operator.nextWindowAuditAt)}.` : "";
         const success = !operator.nextWindowSuccessCriterion && operator.successMetric ? ` Success metric: ${operator.successMetric}.` : "";
-        copy = `${operator.reason}${next ? ` Next autonomous window: ${next}.` : ""}${progress}${proof}${success}`;
+        copy = `${operator.reason}${next ? ` Next autonomous window: ${next}.` : ""}${progress}${proof}${audit}${success}`;
       } else if (operator && !operator.doNotInterrupt) {
         headline = "Attention needed.";
         copy = operator.reason || operator.planSummary || "There is a real signal worth handling before the system keeps scaling.";

@@ -123,6 +123,61 @@ def _revenue_ladder_status() -> dict[str, Any]:
     }
 
 
+def _parse_contract_datetime(value: Any) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value))
+    except Exception:
+        return None
+
+
+def _next_window_audit_at(
+    *,
+    next_window: str | None,
+    send_window_start: str | None,
+    send_window_end: str | None,
+    send_window_reason: str | None,
+) -> str:
+    reason = str(send_window_reason or "").strip()
+    if reason == "open" and str(send_window_end or "").strip():
+        return str(send_window_end or "").strip()
+
+    next_dt = _parse_contract_datetime(next_window)
+    start_dt = _parse_contract_datetime(send_window_start)
+    end_dt = _parse_contract_datetime(send_window_end)
+    if next_dt is not None and start_dt is not None and end_dt is not None:
+        duration = end_dt - start_dt
+        if duration.total_seconds() > 0:
+            return (next_dt + duration).isoformat()
+    return str(send_window_end or next_window or "").strip()
+
+
+def _window_execution_state(
+    *,
+    send_window_reason: str | None,
+    sent_today: int,
+    cap_remaining: int,
+    active_due: int,
+    active_remaining: int,
+    expected_next_window_sends: int,
+) -> str:
+    reason = str(send_window_reason or "").strip()
+    if active_remaining <= 0:
+        return "sample_complete"
+    if expected_next_window_sends <= 0:
+        return "blocked"
+    if reason == "open":
+        return "window_open"
+    if reason == "after_window" and active_due > 0 and cap_remaining > 0 and sent_today <= 0:
+        return "window_missed"
+    if reason == "after_window" and active_due > 0 and cap_remaining > 0:
+        return "window_underfilled"
+    if reason == "after_window":
+        return "window_passed"
+    return "waiting_for_window"
+
+
 def _operator_mode(
     *,
     state: str,
@@ -212,8 +267,12 @@ def _launch_readiness_contract(
     active_due: int,
     cap_remaining: int,
     next_window_send_capacity: int,
+    sent_today: int,
     sample_windows_to_complete: int,
     next_window: str | None,
+    send_window_start: str | None,
+    send_window_end: str | None,
+    send_window_reason: str | None,
     experiment_decision_state: str,
     experiment_decision_next: str,
     active_signal_replies: int,
@@ -280,6 +339,28 @@ def _launch_readiness_contract(
     else:
         next_window_success_criterion = "review the completed active sample and keep or rotate one variable"
 
+    next_window_audit_at = _next_window_audit_at(
+        next_window=next_window,
+        send_window_start=send_window_start,
+        send_window_end=send_window_end,
+        send_window_reason=send_window_reason,
+    )
+    window_execution_state = _window_execution_state(
+        send_window_reason=send_window_reason,
+        sent_today=sent_today,
+        cap_remaining=cap_remaining,
+        active_due=active_due,
+        active_remaining=active_remaining,
+        expected_next_window_sends=expected_next_window_sends,
+    )
+    if expected_next_window_sends > 0:
+        window_execution_failure_condition = (
+            f"after audit time, interrupt if fewer than {expected_next_window_sends} active sends completed "
+            "or the window closes with queued active leads and unused capacity"
+        )
+    else:
+        window_execution_failure_condition = "interrupt if the loop cannot create queued active leads or send capacity"
+
     return {
         "ready": not blockers,
         "blockers": blockers,
@@ -295,6 +376,17 @@ def _launch_readiness_contract(
         "expected_next_window_sends": expected_next_window_sends,
         "expected_progress_after_next_window": expected_progress_after_next_window,
         "next_window_success_criterion": next_window_success_criterion,
+        "next_window_audit_at": next_window_audit_at,
+        "window_execution_state": window_execution_state,
+        "window_execution_failure_condition": window_execution_failure_condition,
+        "window_execution_contract": {
+            "state": window_execution_state,
+            "expected_sends": expected_next_window_sends,
+            "expected_progress": expected_progress_after_next_window,
+            "audit_at": next_window_audit_at,
+            "success_criterion": next_window_success_criterion,
+            "failure_condition": window_execution_failure_condition,
+        },
         "estimated_windows_remaining": sample_windows_to_complete,
         "next_autonomous_window": next_window,
     }
@@ -1381,6 +1473,7 @@ def relay_ops_check(days: int = 14) -> dict[str, Any]:
             checkout_clicks = _safe_int(success_intent.get("checkout_clicks"))
             money_state = str(success.get("bottleneck") or "unknown")
             loop_status = str(checks.get("money_loop_runtime", {}).get("status") or "unknown")
+            sent_today = _safe_int(outreach.get("sent_today"))
             latest_delivery_smoke = recent.get("last_delivery_smoke_detail")
             delivery_smoke_status = (
                 str(latest_delivery_smoke.get("status") or "")
@@ -1410,8 +1503,12 @@ def relay_ops_check(days: int = 14) -> dict[str, Any]:
                 active_due=active_due,
                 cap_remaining=cap_remaining,
                 next_window_send_capacity=send_capacity_per_window,
+                sent_today=sent_today,
                 sample_windows_to_complete=sample_windows_to_complete,
                 next_window=outreach.get("send_window_next_open_local"),
+                send_window_start=outreach.get("send_window_start_local"),
+                send_window_end=outreach.get("send_window_end_local"),
+                send_window_reason=outreach.get("send_window_reason"),
                 experiment_decision_state=experiment_decision_state,
                 experiment_decision_next=experiment_decision_next,
                 active_signal_replies=active_signal_replies,
@@ -1440,6 +1537,10 @@ def relay_ops_check(days: int = 14) -> dict[str, Any]:
                 "expected_next_window_sends": launch_readiness.get("expected_next_window_sends"),
                 "expected_progress_after_next_window": launch_readiness.get("expected_progress_after_next_window"),
                 "next_window_success_criterion": launch_readiness.get("next_window_success_criterion"),
+                "next_window_audit_at": launch_readiness.get("next_window_audit_at"),
+                "window_execution_state": launch_readiness.get("window_execution_state"),
+                "window_execution_failure_condition": launch_readiness.get("window_execution_failure_condition"),
+                "window_execution_contract": launch_readiness.get("window_execution_contract"),
                 "active_experiment_windows_to_complete_at_current_cap": sample_windows_to_complete,
                 "active_experiment_queued_sample_covers_remaining": queued_sample_covers_remaining,
                 "active_experiment_decision_state": experiment_decision_state,

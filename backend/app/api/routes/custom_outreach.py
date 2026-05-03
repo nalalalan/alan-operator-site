@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from fastapi import APIRouter, Body, Depends
 
 from app.api.admin_auth import require_relay_admin
@@ -117,6 +119,56 @@ def _ceil_div(numerator: int, denominator: int) -> int:
     return (numerator + max(denominator, 1) - 1) // max(denominator, 1)
 
 
+def _parse_contract_datetime(value: object) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value))
+    except Exception:
+        return None
+
+
+def _next_window_audit_at(status: dict) -> str:
+    reason = str(status.get("send_window_reason") or "").strip()
+    end_local = str(status.get("send_window_end_local") or "").strip()
+    if reason == "open" and end_local:
+        return end_local
+
+    next_dt = _parse_contract_datetime(status.get("send_window_next_open_local"))
+    start_dt = _parse_contract_datetime(status.get("send_window_start_local"))
+    end_dt = _parse_contract_datetime(status.get("send_window_end_local"))
+    if next_dt is not None and start_dt is not None and end_dt is not None:
+        duration = end_dt - start_dt
+        if duration.total_seconds() > 0:
+            return (next_dt + duration).isoformat()
+    return str(status.get("send_window_end_local") or status.get("send_window_next_open_local") or "").strip()
+
+
+def _window_execution_state(
+    *,
+    status: dict,
+    active_remaining: int,
+    active_due: int,
+    expected_next_window_sends: int,
+) -> str:
+    reason = str(status.get("send_window_reason") or "").strip()
+    sent_today = _safe_int(status.get("sent_today"))
+    cap_remaining = _safe_int(status.get("cap_remaining"))
+    if active_remaining <= 0:
+        return "sample_complete"
+    if expected_next_window_sends <= 0:
+        return "blocked"
+    if reason == "open":
+        return "window_open"
+    if reason == "after_window" and active_due > 0 and cap_remaining > 0 and sent_today <= 0:
+        return "window_missed"
+    if reason == "after_window" and active_due > 0 and cap_remaining > 0:
+        return "window_underfilled"
+    if reason == "after_window":
+        return "window_passed"
+    return "waiting_for_window"
+
+
 def _autonomous_plan(status: dict, operator: dict, success: dict) -> dict:
     active_sends = _safe_int(status.get("active_experiment_sends"))
     active_target = _safe_int(status.get("active_experiment_sample_target"))
@@ -146,6 +198,20 @@ def _autonomous_plan(status: dict, operator: dict, success: dict) -> dict:
         next_window_success_criterion = "make queued active leads and send capacity available"
     else:
         next_window_success_criterion = "review the completed active sample and keep or rotate one variable"
+    next_window_audit_at = _next_window_audit_at(status)
+    window_execution_state = _window_execution_state(
+        status=status,
+        active_remaining=active_remaining,
+        active_due=active_due,
+        expected_next_window_sends=expected_next_window_sends,
+    )
+    if expected_next_window_sends > 0:
+        window_execution_failure_condition = (
+            f"after audit time, interrupt if fewer than {expected_next_window_sends} active sends completed "
+            "or the window closes with queued active leads and unused capacity"
+        )
+    else:
+        window_execution_failure_condition = "interrupt if the loop cannot create queued active leads or send capacity"
     next_window = str(status.get("send_window_next_open_local") or "").strip()
     mode = str(operator.get("mode") or "").strip()
 
@@ -172,6 +238,17 @@ def _autonomous_plan(status: dict, operator: dict, success: dict) -> dict:
         "expected_next_window_sends": expected_next_window_sends,
         "expected_progress_after_next_window": expected_progress_after_next_window,
         "next_window_success_criterion": next_window_success_criterion,
+        "next_window_audit_at": next_window_audit_at,
+        "window_execution_state": window_execution_state,
+        "window_execution_failure_condition": window_execution_failure_condition,
+        "window_execution_contract": {
+            "state": window_execution_state,
+            "expected_sends": expected_next_window_sends,
+            "expected_progress": expected_progress_after_next_window,
+            "audit_at": next_window_audit_at,
+            "success_criterion": next_window_success_criterion,
+            "failure_condition": window_execution_failure_condition,
+        },
         "estimated_windows_remaining": windows_remaining,
         "next_autonomous_window": next_window,
         "review_rule": "do not judge the offer until the active sample is complete or real buyer signal appears",

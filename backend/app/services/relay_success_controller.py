@@ -687,6 +687,78 @@ def _outbound_send_window_underfilled(outreach: dict[str, Any]) -> bool:
     return due > 0
 
 
+def _outbound_window_audit_at(outreach: dict[str, Any]) -> str:
+    reason = str(outreach.get("send_window_reason") or "").strip()
+    end_local = str(outreach.get("send_window_end_local") or "").strip()
+    if reason == "open" and end_local:
+        return end_local
+
+    next_dt = _parse_iso_datetime(outreach.get("send_window_next_open_local"))
+    start_dt = _parse_iso_datetime(outreach.get("send_window_start_local"))
+    end_dt = _parse_iso_datetime(outreach.get("send_window_end_local"))
+    if next_dt is not None and start_dt is not None and end_dt is not None:
+        duration = end_dt - start_dt
+        if duration.total_seconds() > 0:
+            return (next_dt + duration).isoformat()
+    return str(outreach.get("send_window_end_local") or outreach.get("send_window_next_open_local") or "").strip()
+
+
+def _outbound_window_execution_contract(outreach: dict[str, Any]) -> dict[str, Any]:
+    active_sends = int(outreach.get("active_experiment_sends") or 0)
+    active_target = int(outreach.get("active_experiment_sample_target") or 0)
+    active_due = int(outreach.get("active_experiment_new_due_count") or outreach.get("due_now_count") or 0)
+    active_remaining = max(active_target - active_sends, 0) if active_target else 0
+    cap_remaining = int(outreach.get("cap_remaining") or 0)
+    daily_cap = int(outreach.get("daily_send_cap") or 0)
+    capacity = max(min(cap_remaining or daily_cap, daily_cap or cap_remaining or 1), 1)
+    expected_sends = (
+        min(active_remaining, active_due, capacity)
+        if active_remaining > 0 and active_due > 0 and capacity > 0
+        else 0
+    )
+    expected_after = min(active_sends + expected_sends, active_target) if active_target else active_sends
+    expected_progress = f"{expected_after}/{active_target}" if active_target else ""
+    reason = str(outreach.get("send_window_reason") or "").strip()
+    sent_today = int(outreach.get("sent_today") or 0)
+
+    if active_remaining <= 0:
+        state = "sample_complete"
+    elif expected_sends <= 0:
+        state = "blocked"
+    elif reason == "open":
+        state = "window_open"
+    elif reason == "after_window" and active_due > 0 and cap_remaining > 0 and sent_today <= 0:
+        state = "window_missed"
+    elif reason == "after_window" and active_due > 0 and cap_remaining > 0:
+        state = "window_underfilled"
+    elif reason == "after_window":
+        state = "window_passed"
+    else:
+        state = "waiting_for_window"
+
+    if expected_sends > 0:
+        success_criterion = (
+            f"send {expected_sends} active leads and move progress "
+            f"from {active_sends}/{active_target} to {expected_progress}"
+        )
+        failure_condition = (
+            f"after audit time, interrupt if fewer than {expected_sends} active sends completed "
+            "or the window closes with queued active leads and unused capacity"
+        )
+    else:
+        success_criterion = "make queued active leads and send capacity available"
+        failure_condition = "interrupt if the loop cannot create queued active leads or send capacity"
+
+    return {
+        "state": state,
+        "expected_sends": expected_sends,
+        "expected_progress": expected_progress,
+        "audit_at": _outbound_window_audit_at(outreach),
+        "success_criterion": success_criterion,
+        "failure_condition": failure_condition,
+    }
+
+
 def relay_success_snapshot(days: int = 7) -> dict[str, Any]:
     days = max(1, min(int(days), 90))
     now = _now()
@@ -743,6 +815,7 @@ def relay_success_snapshot(days: int = 7) -> dict[str, Any]:
         and due_now > 0
         and send_window_seconds_open >= send_window_stall_grace_seconds
     )
+    window_execution_contract = _outbound_window_execution_contract(outreach)
     env = _env_snapshot()
     critical_missing = [
         name
@@ -807,6 +880,9 @@ def relay_success_snapshot(days: int = 7) -> dict[str, Any]:
             "send_window_seconds_open": send_window_seconds_open,
             "send_window_stall_grace_seconds": send_window_stall_grace_seconds,
             "outbound_send_stalled": outbound_send_stalled,
+            "window_execution_contract": window_execution_contract,
+            "window_execution_state": window_execution_contract.get("state"),
+            "next_window_audit_at": window_execution_contract.get("audit_at"),
             "next_money_move": outreach.get("next_money_move", ""),
         },
         "conversion": {

@@ -2430,6 +2430,59 @@ def _ao_digest_ceil_div(numerator: int, denominator: int) -> int:
     return (numerator + denominator - 1) // denominator
 
 
+def _ao_digest_parse_datetime(value: Any) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value))
+    except Exception:
+        return None
+
+
+def _ao_digest_next_window_audit_at(outreach_digest: dict[str, Any], operator: dict[str, Any]) -> str:
+    reason = str(outreach_digest.get("send_window_reason") or "").strip()
+    end_local = str(outreach_digest.get("send_window_end_local") or "").strip()
+    if reason == "open" and end_local:
+        return end_local
+
+    next_dt = _ao_digest_parse_datetime(
+        operator.get("next_window")
+        or outreach_digest.get("send_window_next_open_local")
+    )
+    start_dt = _ao_digest_parse_datetime(outreach_digest.get("send_window_start_local"))
+    end_dt = _ao_digest_parse_datetime(outreach_digest.get("send_window_end_local"))
+    if next_dt is not None and start_dt is not None and end_dt is not None:
+        duration = end_dt - start_dt
+        if duration.total_seconds() > 0:
+            return (next_dt + duration).isoformat()
+    return str(outreach_digest.get("send_window_end_local") or outreach_digest.get("send_window_next_open_local") or "").strip()
+
+
+def _ao_digest_window_execution_state(
+    *,
+    outreach_digest: dict[str, Any],
+    active_remaining: int,
+    active_due: int,
+    expected_next_window_sends: int,
+) -> str:
+    reason = str(outreach_digest.get("send_window_reason") or "").strip()
+    sent_today = _ao_digest_int(outreach_digest.get("sent_today"))
+    cap_remaining = _ao_digest_int(outreach_digest.get("cap_remaining"))
+    if active_remaining <= 0:
+        return "sample_complete"
+    if expected_next_window_sends <= 0:
+        return "blocked"
+    if reason == "open":
+        return "window_open"
+    if reason == "after_window" and active_due > 0 and cap_remaining > 0 and sent_today <= 0:
+        return "window_missed"
+    if reason == "after_window" and active_due > 0 and cap_remaining > 0:
+        return "window_underfilled"
+    if reason == "after_window":
+        return "window_passed"
+    return "waiting_for_window"
+
+
 def _ao_digest_launch_readiness(
     summary: dict[str, Any],
     outreach_digest: dict[str, Any],
@@ -2470,6 +2523,20 @@ def _ao_digest_launch_readiness(
         next_window_success_criterion = "make queued active leads and send capacity available"
     else:
         next_window_success_criterion = "review the completed active sample and keep or rotate one variable"
+    next_window_audit_at = _ao_digest_next_window_audit_at(outreach_digest, operator)
+    window_execution_state = _ao_digest_window_execution_state(
+        outreach_digest=outreach_digest,
+        active_remaining=active_remaining,
+        active_due=active_due,
+        expected_next_window_sends=expected_next_window_sends,
+    )
+    if expected_next_window_sends > 0:
+        window_execution_failure_condition = (
+            f"after audit time, interrupt if fewer than {expected_next_window_sends} active sends completed "
+            "or the window closes with queued active leads and unused capacity"
+        )
+    else:
+        window_execution_failure_condition = "interrupt if the loop cannot create queued active leads or send capacity"
     next_window = str(
         operator.get("next_window")
         or outreach_digest.get("send_window_next_open_local")
@@ -2541,6 +2608,17 @@ def _ao_digest_launch_readiness(
         "expected_next_window_sends": expected_next_window_sends,
         "expected_progress_after_next_window": expected_progress_after_next_window,
         "next_window_success_criterion": next_window_success_criterion,
+        "next_window_audit_at": next_window_audit_at,
+        "window_execution_state": window_execution_state,
+        "window_execution_failure_condition": window_execution_failure_condition,
+        "window_execution_contract": {
+            "state": window_execution_state,
+            "expected_sends": expected_next_window_sends,
+            "expected_progress": expected_progress_after_next_window,
+            "audit_at": next_window_audit_at,
+            "success_criterion": next_window_success_criterion,
+            "failure_condition": window_execution_failure_condition,
+        },
         "estimated_windows_remaining": windows_remaining,
         "next_autonomous_window": next_window,
         "review_rule": "do not judge the offer until the active sample is complete or real buyer signal appears",
