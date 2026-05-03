@@ -17,7 +17,11 @@ from app.services.post_purchase_autopilot import (
     run_paid_intake_reminder_sweep,
     run_post_delivery_upsell_sweep,
 )
-from app.services.relay_performance import relay_performance_status, run_weekly_performance_review
+from app.services.relay_performance import (
+    experiment_sample_target,
+    relay_performance_status,
+    run_weekly_performance_review,
+)
 
 
 SUCCESS_TICK_EVENT = "relay_success_control_tick"
@@ -594,7 +598,6 @@ def _zero_signal_plan_detail(
 
 def _zero_signal_rotation_status(session: Session) -> dict[str, Any]:
     threshold = _zero_signal_rotation_threshold()
-    min_sample = _experiment_failure_sample()
     limit = max(threshold + 4, 6)
     rows = session.execute(
         select(AcquisitionEvent)
@@ -610,6 +613,7 @@ def _zero_signal_rotation_status(session: Session) -> dict[str, Any]:
     for row in rows:
         payload = _safe_json(row.payload_json)
         variant = _event_experiment_variant(payload)
+        min_sample = experiment_sample_target(payload)
         live_metrics = (
             _variant_metrics_since_plan(
                 session,
@@ -638,6 +642,7 @@ def _zero_signal_rotation_status(session: Session) -> dict[str, Any]:
                 "created_at": row.created_at.isoformat() if row.created_at else "",
                 "experiment_variant": variant,
                 "experiment_label": str(payload.get("experiment_label") or ""),
+                "sample_target": min_sample,
                 **detail,
             }
         )
@@ -1667,7 +1672,6 @@ def _run_outbound_experiment_review_if_needed(bottleneck: str, snapshot: dict[st
     if bottleneck not in {"outbound_targeting_or_copy", "offer_market_rebuild_required"}:
         return {"status": "skipped", "summary": "outbound experiment review not needed for this bottleneck"}
 
-    failure_sample = _experiment_failure_sample()
     sends = int(snapshot.get("outreach", {}).get("sends") or 0)
     replies = int(snapshot.get("outreach", {}).get("replies") or 0)
     payments = int(snapshot.get("money", {}).get("payments") or 0)
@@ -1683,6 +1687,7 @@ def _run_outbound_experiment_review_if_needed(bottleneck: str, snapshot: dict[st
             "active_variant": active_variant,
         }
 
+    failure_sample = experiment_sample_target(active_plan or active_variant)
     active_sends = int(active_signal.get("sends") or 0)
     active_replies = int(active_signal.get("replies") or 0)
     active_payments = int(active_signal.get("payments") or 0)

@@ -86,6 +86,7 @@ EXPERIMENTS: dict[str, dict[str, Any]] = {
     "hard_paid_test_direct": {
         "label": "Hard paid test",
         "hypothesis": "If free sample language gets no reply signal, direct paid-outcome language may reveal actual buyers.",
+        "sample_target": 10,
         "query_rotation": [
             "agency owner client follow up",
             "b2b agency operations founder",
@@ -96,6 +97,7 @@ EXPERIMENTS: dict[str, dict[str, Any]] = {
     "revenue_leak_direct": {
         "label": "Revenue leak angle",
         "hypothesis": "Positioning delayed follow-up as a revenue leak may reach buyers who ignore generic cleanup language.",
+        "sample_target": 10,
         "query_rotation": [
             "agency sales operations founder",
             "marketing agency client success operations",
@@ -460,6 +462,25 @@ def _min_experiment_sample() -> int:
     return max(1, _int_from(os.getenv("RELAY_EXPERIMENT_MIN_SAMPLE", "20"), 20))
 
 
+def experiment_sample_target(plan_or_variant: dict[str, Any] | str | None = None) -> int:
+    default = _min_experiment_sample()
+    variant = ""
+    if isinstance(plan_or_variant, dict):
+        direct_target = _int_from(plan_or_variant.get("sample_target"), 0)
+        if direct_target > 0:
+            return direct_target
+        variant = str(plan_or_variant.get("experiment_variant") or "").strip()
+    elif plan_or_variant is not None:
+        variant = str(plan_or_variant or "").strip()
+
+    experiment = EXPERIMENTS.get(variant)
+    if isinstance(experiment, dict):
+        experiment_target = _int_from(experiment.get("sample_target"), 0)
+        if experiment_target > 0:
+            return experiment_target
+    return default
+
+
 def _zero_signal_rotation_threshold() -> int:
     return max(1, _int_from(os.getenv("RELAY_ZERO_SIGNAL_ROTATION_ESCALATION_COUNT", "2"), 2))
 
@@ -529,7 +550,7 @@ def _plan_variant_sample_metrics(
 def _latest_plan_sample_pending(session: Session, latest_plan: dict[str, Any] | None, *, now: datetime) -> bool:
     if not latest_plan:
         return False
-    min_sample = _min_experiment_sample()
+    min_sample = experiment_sample_target(latest_plan)
     metrics = _plan_variant_sample_metrics(
         session,
         plan=latest_plan,
@@ -540,7 +561,6 @@ def _latest_plan_sample_pending(session: Session, latest_plan: dict[str, Any] | 
 
 
 def _zero_signal_rotation_count(session: Session) -> int:
-    min_sample = _min_experiment_sample()
     threshold = _zero_signal_rotation_threshold()
     now = _now()
     rows = session.execute(
@@ -553,6 +573,7 @@ def _zero_signal_rotation_count(session: Session) -> int:
     count = 0
     for row in rows:
         payload = _safe_json(row.payload_json)
+        min_sample = experiment_sample_target(payload)
         live_metrics = _plan_variant_sample_metrics(
             session,
             plan=payload,
@@ -584,7 +605,7 @@ def _choose_variant(
     zero_signal_rotation_count: int = 0,
     latest_plan_sample_pending: bool = False,
 ) -> tuple[str, list[str]]:
-    min_sample = _min_experiment_sample()
+    min_sample = experiment_sample_target(latest_plan) if latest_plan else _min_experiment_sample()
     evidence_candidates = [
         ("prior week", prior_week),
         ("rolling 7-day window", rolling_window or {}),
@@ -611,7 +632,7 @@ def _choose_variant(
         return previous_variant if previous_variant in EXPERIMENTS else DEFAULT_EXPERIMENT_VARIANT, reasons
 
     if sends < min_sample:
-        reasons.append("Sample is still small; avoid random thrashing until at least 20 sends land.")
+        reasons.append(f"Sample is still small; avoid random thrashing until at least {min_sample} sends land.")
         return previous_variant if previous_variant in EXPERIMENTS else DEFAULT_EXPERIMENT_VARIANT, reasons
 
     if payments > 0:
@@ -685,6 +706,7 @@ def _plan_payload(
         "hypothesis": experiment["hypothesis"],
         "change": experiment["change"],
         "query_rotation": experiment["query_rotation"],
+        "sample_target": experiment_sample_target(variant),
         "daily_cap_recommendation": _daily_cap_recommendation(evidence_for_cap),
         "decision_reasons": reasons,
         "current_week_metrics": current_week,
@@ -830,6 +852,7 @@ def active_relay_experiment() -> dict[str, Any]:
             "experiment_label": experiment["label"],
             "hypothesis": experiment["hypothesis"],
             "query_rotation": experiment["query_rotation"],
+            "sample_target": experiment_sample_target(forced),
             "source": "env",
             "week_start": week_start.isoformat(),
             "week_start_date": week_start.date().isoformat(),
@@ -840,6 +863,7 @@ def active_relay_experiment() -> dict[str, Any]:
 
     if plan and str(plan.get("experiment_variant")) in EXPERIMENTS:
         plan["source"] = "weekly_plan"
+        plan.setdefault("sample_target", experiment_sample_target(plan))
         return plan
 
     experiment = EXPERIMENTS[DEFAULT_EXPERIMENT_VARIANT]
@@ -848,6 +872,7 @@ def active_relay_experiment() -> dict[str, Any]:
         "experiment_label": experiment["label"],
         "hypothesis": experiment["hypothesis"],
         "query_rotation": experiment["query_rotation"],
+        "sample_target": experiment_sample_target(DEFAULT_EXPERIMENT_VARIANT),
         "source": "default",
         "week_start": week_start.isoformat(),
         "week_start_date": week_start.date().isoformat(),

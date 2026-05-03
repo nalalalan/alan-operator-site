@@ -557,7 +557,22 @@ def _zero_reply_strict_mode(total_sends: int, total_replies: int) -> bool:
     return total_sends >= 100 and total_replies == 0
 
 
-def _experiment_sample_target() -> int:
+def _experiment_sample_target(active_experiment: dict[str, Any] | None = None) -> int:
+    if isinstance(active_experiment, dict):
+        try:
+            direct_target = int(active_experiment.get("sample_target") or 0)
+            if direct_target > 0:
+                return direct_target
+        except Exception:
+            pass
+        try:
+            from app.services.relay_performance import experiment_sample_target
+
+            target = experiment_sample_target(active_experiment)
+            if target > 0:
+                return target
+        except Exception:
+            pass
     try:
         return max(int(os.getenv("RELAY_EXPERIMENT_FAILURE_SAMPLE", os.getenv("RELAY_EXPERIMENT_MIN_SAMPLE", "20")) or 20), 1)
     except Exception:
@@ -684,7 +699,7 @@ def _quality_snapshot(session) -> dict[str, Any]:
     active_experiment = _active_experiment()
     active_variant = str(active_experiment.get("experiment_variant") or "control_sample_ask")
     active_variant_sends = _active_variant_send_count(session, active_variant, active_experiment)
-    experiment_sample_target = _experiment_sample_target()
+    experiment_sample_target = _experiment_sample_target(active_experiment)
     active_experiment_direct_new_due = 0
     active_experiment_generic_new_due = 0
 
@@ -778,7 +793,8 @@ def _next_money_move(status: dict[str, Any]) -> str:
     if status.get("active_experiment_needs_sample"):
         active_due = int(status.get("active_experiment_new_due_count") or 0)
         active_sends = int(status.get("active_experiment_sends") or 0)
-        target = int(status.get("active_experiment_sample_target") or _experiment_sample_target())
+        active_experiment = status.get("active_experiment") if isinstance(status.get("active_experiment"), dict) else None
+        target = int(status.get("active_experiment_sample_target") or _experiment_sample_target(active_experiment))
         variant = str(status.get("active_experiment_variant") or "active experiment")
         if active_due > 0:
             if status.get("send_window_is_open"):
@@ -852,6 +868,7 @@ def _fallback_quality(status: dict[str, Any], error: Exception) -> dict[str, Any
     sent_today = int(status.get("sent_today") or 0)
     daily_cap = int(status.get("daily_send_cap") or settings.buyer_acq_daily_send_cap or 0)
     due_now = int(status.get("due_now_count") or status.get("queued_count") or 0)
+    active_experiment = status.get("active_experiment") if isinstance(status.get("active_experiment"), dict) else None
     return {
         "direct_inbox_count": int(status.get("direct_inbox_count") or 0),
         "generic_inbox_count": int(status.get("generic_inbox_count") or 0),
@@ -872,7 +889,7 @@ def _fallback_quality(status: dict[str, Any], error: Exception) -> dict[str, Any
         "zero_reply_strict_mode": bool(status.get("zero_reply_strict_mode") or False),
         "active_experiment_variant": str(status.get("active_experiment_variant") or ""),
         "active_experiment_sends": int(status.get("active_experiment_sends") or 0),
-        "active_experiment_sample_target": _experiment_sample_target(),
+        "active_experiment_sample_target": _experiment_sample_target(active_experiment),
         "active_experiment_needs_sample": bool(status.get("active_experiment_needs_sample") or False),
         "active_experiment_new_due_count": int(status.get("active_experiment_new_due_count") or 0),
         "active_experiment_direct_new_due_count": int(status.get("active_experiment_direct_new_due_count") or 0),
@@ -953,7 +970,7 @@ def optimized_send_due_sequence_messages(limit: int | None = None) -> dict[str, 
         duplicate_email_blocked = 0
         weak_decision_maker_blocked = 0
         active_variant_sends = _active_variant_send_count(session, active_variant, active_experiment)
-        experiment_sample_target = _experiment_sample_target()
+        experiment_sample_target = _experiment_sample_target(active_experiment)
         total_sends_all_time = int(outreach._total_send_count(session) or 0)
         total_replies_all_time = int(
             session.execute(
