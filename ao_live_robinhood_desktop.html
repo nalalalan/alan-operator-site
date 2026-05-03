@@ -776,6 +776,10 @@
         .replace(/'/g, "&#39;");
     }
 
+    function stateText(value) {
+      return String(value || "").replace(/_/g, " ");
+    }
+
     function nextBoundary(minutes, fromDate = new Date()) {
       const d = new Date(fromDate);
       d.setSeconds(0, 0);
@@ -864,6 +868,8 @@
       const nextWindowSuccessCriterion = launch.next_window_success_criterion || moneySystem.next_window_success_criterion || plan.next_window_success_criterion || "";
       const nextWindowAuditAt = launch.next_window_audit_at || moneySystem.next_window_audit_at || plan.next_window_audit_at || "";
       const windowExecutionState = launch.window_execution_state || moneySystem.window_execution_state || plan.window_execution_state || "";
+      const readinessState = launch.readiness_state || moneySystem.readiness_state || "";
+      const readinessReason = launch.readiness_reason || moneySystem.readiness_reason || "";
       const revenueObjective = moneySystem.revenue_objective || status.money_target || {};
       const moneyDecisionContract = moneySystem.money_decision_contract || {};
       const replyAutonomyContract = moneySystem.reply_autonomy_contract || {};
@@ -877,8 +883,10 @@
           label: doNotInterrupt && launch.ready !== false ? "Stay out" : "Attention",
           reason: blockers.length
             ? blockers.join(" / ")
-            : reason || (doNotInterrupt ? "Relay is operating without a useful human move." : "Relay found a signal worth handling."),
-          mode,
+            : readinessReason || reason || (doNotInterrupt ? "Relay is operating without a useful human move." : "Relay found a signal worth handling."),
+          mode: readinessState || mode,
+          readinessState,
+          readinessReason,
           doNotInterrupt: doNotInterrupt && launch.ready !== false,
           nextWindow,
           activeProgress: launch.active_experiment_progress || moneySystem.active_experiment_progress || plan.active_experiment_progress || "",
@@ -1093,6 +1101,7 @@
       if (operator?.doNotInterrupt) {
         headline = "Stay out. Relay is handling it.";
         const next = fmtMoment(operator.nextWindow);
+        const readiness = operator.readinessReason ? `${operator.readinessReason}.` : "";
         const progress = operator.activeProgress ? ` Active sample: ${operator.activeProgress}.` : "";
         const proof = operator.nextWindowSuccessCriterion
           ? ` Next proof: ${operator.nextWindowSuccessCriterion}.`
@@ -1120,7 +1129,7 @@
           ? ` You: ${ownerContract.manual_input_required ? "needed" : "out of loop"}${ownerContract.autonomous_until ? ` until ${fmtMoment(ownerContract.autonomous_until)}` : ""}.`
           : "";
         const success = !operator.nextWindowSuccessCriterion && operator.successMetric ? ` Success metric: ${operator.successMetric}.` : "";
-        copy = `${operator.reason}${next ? ` Next autonomous window: ${next}.` : ""}${progress}${proof}${audit}${moneyTarget}${replyHandling}${governorLine}${ladderLine}${ownerLine}${success}`;
+        copy = `${readiness || operator.reason}${next ? ` Next autonomous window: ${next}.` : ""}${progress}${proof}${audit}${moneyTarget}${replyHandling}${governorLine}${ladderLine}${ownerLine}${success}`;
       } else if (operator && !operator.doNotInterrupt) {
         headline = "Attention needed.";
         copy = operator.reason || operator.planSummary || "There is a real signal worth handling before the system keeps scaling.";
@@ -1153,7 +1162,7 @@
 
       $("liveState").textContent = "live";
       $("lastUpdatedPill").textContent = `updated ${fmtTime(new Date())}`;
-      $("marketPill").textContent = `${operator.label}: ${operator.mode}`;
+      $("marketPill").textContent = `${operator.label}: ${stateText(operator.mode)}`;
       $("todayMoney").textContent = fmtExactMoney(money.today?.gross_usd || 0);
       $("todayReplies").textContent = String(status.replies_today ?? 0);
       $("sendRhythm").textContent = operator.label;
