@@ -271,6 +271,9 @@ def _status_label(value: Any) -> str:
                 details.append(f"error_type={error_type}")
             elif value.get("error"):
                 details.append("error_present=1")
+            for key in ("http_status", "apollo_primary_status", "apollo_fallback_status"):
+                if value.get(key) is not None:
+                    details.append(f"{key}={value.get(key)}")
             for key in ("source", "searched", "enriched_with_email", "missing_email_after_enrichment", "upserted"):
                 if value.get(key) is not None:
                     details.append(f"{key}={value.get(key)}")
@@ -440,8 +443,26 @@ def _compact_refill_attempt(result: dict[str, Any]) -> dict[str, Any]:
         "apollo_primary_error_status": result.get("apollo_primary_error_status"),
         "enrich_errors": result.get("enrich_errors"),
         "error_type": result.get("error_type"),
+        "http_status": result.get("http_status"),
+        "apollo_primary_status": result.get("apollo_primary_status"),
+        "apollo_fallback_status": result.get("apollo_fallback_status"),
         "reason": result.get("reason"),
     }
+
+
+def _exception_refill_fields(exc: Exception) -> dict[str, Any]:
+    fields: dict[str, Any] = {"error_type": type(exc).__name__}
+    response = getattr(exc, "response", None)
+    status_code = getattr(response, "status_code", None)
+    if status_code is not None:
+        fields["http_status"] = status_code
+    primary_status = getattr(exc, "primary_status", None)
+    fallback_status = getattr(exc, "fallback_status", None)
+    if primary_status is not None:
+        fields["apollo_primary_status"] = primary_status
+    if fallback_status is not None:
+        fields["apollo_fallback_status"] = fallback_status
+    return fields
 
 
 def _patched_send_due_sequence_messages(limit: int | None = None) -> dict[str, Any]:
@@ -761,8 +782,8 @@ async def _relay_money_loop_tick(
                     {
                         "status": "error",
                         "reason": "apollo_refill_failed",
-                        "error_type": type(exc).__name__,
                         "q_keywords": attempt_query,
+                        **_exception_refill_fields(exc),
                     }
                 )
                 continue
@@ -775,10 +796,10 @@ async def _relay_money_loop_tick(
             refill_result = {
                 "status": "error",
                 "reason": "apollo_refill_failed",
-                "error_type": type(exc).__name__,
                 "error": str(exc),
                 "q_keywords": query,
                 "attempts": refill_attempts,
+                **_exception_refill_fields(exc),
             }
             if _original_apollo_search is not None:
                 try:
@@ -786,11 +807,11 @@ async def _relay_money_loop_tick(
                     refill_result = {
                         "status": "degraded_ok",
                         "reason": "apollo_refill_failed_apify_fallback_ran",
-                        "error_type": type(exc).__name__,
                         "error": str(exc),
                         "q_keywords": query,
                         "attempts": refill_attempts,
                         "fallback_result": fallback_result,
+                        **_exception_refill_fields(exc),
                     }
                 except Exception as fallback_exc:
                     refill_result["fallback_result"] = {

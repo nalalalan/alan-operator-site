@@ -7,6 +7,15 @@ import httpx
 from app.core.config import settings
 
 
+class ApolloSearchError(RuntimeError):
+    def __init__(self, *, primary_status: int, fallback_status: int) -> None:
+        super().__init__(
+            f"apollo_people_search_failed primary_status={primary_status} fallback_status={fallback_status}"
+        )
+        self.primary_status = primary_status
+        self.fallback_status = fallback_status
+
+
 class ApolloClient:
     base_url = "https://api.apollo.io/api/v1"
 
@@ -59,7 +68,11 @@ class ApolloClient:
             status_code = exc.response.status_code if exc.response is not None else 0
             if status_code not in {403, 404, 422}:
                 raise
-            result = await self._post("/mixed_people/search", json_body=payload)
+            try:
+                result = await self._post("/mixed_people/search", json_body=payload)
+            except httpx.HTTPStatusError as fallback_exc:
+                fallback_status = fallback_exc.response.status_code if fallback_exc.response is not None else 0
+                raise ApolloSearchError(primary_status=status_code, fallback_status=fallback_status) from fallback_exc
             result["_apollo_endpoint"] = "mixed_people/search"
             result["_apollo_primary_error_status"] = status_code
             return result

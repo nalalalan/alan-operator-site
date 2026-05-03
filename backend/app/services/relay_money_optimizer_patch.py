@@ -1146,6 +1146,20 @@ def _apollo_enrichment_detail(person: dict[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in detail.items() if value}
 
 
+def _apollo_locations(value: Any) -> list[str]:
+    raw_values = value if isinstance(value, list) else [value]
+    mapped: list[str] = []
+    for item in raw_values:
+        text = str(item or "").strip()
+        if not text:
+            continue
+        if text.upper() in {"US", "USA", "UNITED STATES OF AMERICA"}:
+            text = "United States"
+        if text not in mapped:
+            mapped.append(text)
+    return mapped or ["United States"]
+
+
 def _apollo_primary_person(payload: Any) -> dict[str, Any]:
     if not isinstance(payload, dict):
         return {}
@@ -1278,7 +1292,10 @@ async def optimized_import_from_apollo_people_search(payload: dict[str, Any]) ->
         "person_seniorities",
         payload.get("person_seniorities") or ["owner", "founder", "c_suite", "partner", "vp", "head", "director"],
     )
-    search_payload.setdefault("organization_locations", payload.get("organization_locations") or [settings.default_country])
+    search_payload.setdefault(
+        "organization_locations",
+        _apollo_locations(payload.get("organization_locations") or [settings.default_country]),
+    )
     search_payload.setdefault("contact_email_status", payload.get("contact_email_status") or ["verified"])
     if q_keywords:
         search_payload.setdefault("q_keywords", q_keywords)
