@@ -1149,6 +1149,12 @@ async def _relay_money_loop_tick(
     latest_refill_status = status_for_refill
     backoff_status = _refill_timeout_backoff_status(force_refill=force_refill)
     send_window_ready = _send_window_ready_without_refill(status_for_refill)
+    refill_due_target = min_direct_due
+    if refill_active_experiment_needs_sample:
+        refill_due_target = max(
+            int(send_window_ready.get("active_needed_for_window") or 0),
+            min_direct_due,
+        )
     refill_result: dict[str, Any] = {"status": "skipped", "reason": "direct_due_ok"}
     if not settings.apollo_api_key:
         refill_result = {"status": "skipped", "reason": "missing_apollo_api_key"}
@@ -1170,7 +1176,7 @@ async def _relay_money_loop_tick(
             "reason": "refill_timeout_backoff",
             **backoff_status,
         }
-    elif force_refill or refill_due_for_decision < min_direct_due:
+    elif force_refill or refill_due_for_decision < refill_due_target:
         query = refill_query or ops.choose_query()
         importer = getattr(ops, "import_from_apollo_people_search", import_from_apollo_people_search)
         refill_attempts: list[dict[str, Any]] = []
@@ -1200,7 +1206,7 @@ async def _relay_money_loop_tick(
                     )
                     refill_attempts.append(_compact_refill_attempt(attempt))
                     refill_result = attempt
-                    if _refill_capacity_satisfied(latest_refill_status, min_direct_due):
+                    if _refill_capacity_satisfied(latest_refill_status, refill_due_target):
                         break
                     if not refill_active_experiment_needs_sample and _refill_created_send_capacity(attempt):
                         break
@@ -1273,7 +1279,7 @@ async def _relay_money_loop_tick(
                             )
                             fallback_attempts.append(_compact_refill_attempt(fallback_attempt))
                             fallback_result = fallback_attempt
-                            if _refill_capacity_satisfied(latest_refill_status, min_direct_due):
+                            if _refill_capacity_satisfied(latest_refill_status, refill_due_target):
                                 break
                             if not refill_active_experiment_needs_sample and _refill_created_send_capacity(
                                 fallback_attempt
@@ -1354,6 +1360,7 @@ async def _relay_money_loop_tick(
         "active_experiment_new_due_before": active_experiment_new_due,
         "refill_due_before": refill_due,
         "refill_due_for_decision": refill_due_for_decision,
+        "refill_due_target": refill_due_target,
         "refill_timeout_backoff": backoff_status,
         "send_window_ready_without_refill": send_window_ready,
         "send_window_open_before": send_window_open,
