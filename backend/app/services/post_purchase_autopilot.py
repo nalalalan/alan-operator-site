@@ -66,6 +66,19 @@ def _find_prospect_by_email(session: Session, email: str) -> AcquisitionProspect
     return session.execute(stmt).scalar_one_or_none()
 
 
+def _paid_buyer_external_id(email: str) -> str:
+    return f"stripe-buyer:{hashlib.sha256(email.encode('utf-8')).hexdigest()[:24]}"
+
+
+def _find_paid_buyer_by_external_id(session: Session, email: str) -> AcquisitionProspect | None:
+    external_id = _paid_buyer_external_id(email)
+    return session.execute(
+        select(AcquisitionProspect)
+        .where(AcquisitionProspect.external_id == external_id)
+        .limit(1)
+    ).scalar_one_or_none()
+
+
 def _paid_for_email(session: Session, email: str) -> bool:
     if _is_internal_email(email):
         return False
@@ -88,10 +101,14 @@ def _paid_for_email(session: Session, email: str) -> bool:
 
 
 def _ensure_paid_prospect(session: Session, email: str) -> AcquisitionProspect:
+    email = (email or "").strip().lower()
+    external_id = _paid_buyer_external_id(email)
     prospect = _find_prospect_by_email(session, email)
     if prospect is None:
+        prospect = _find_paid_buyer_by_external_id(session, email)
+    if prospect is None:
         prospect = AcquisitionProspect(
-            external_id=f"stripe-buyer:{hashlib.sha256(email.encode('utf-8')).hexdigest()[:24]}",
+            external_id=external_id,
             contact_email=email,
             company_name="paid Relay buyer",
             source="stripe",
@@ -102,7 +119,10 @@ def _ensure_paid_prospect(session: Session, email: str) -> AcquisitionProspect:
             fit_band="paid",
         )
         session.add(prospect)
+        session.flush()
     else:
+        if not prospect.contact_email and email:
+            prospect.contact_email = email
         prospect.status = "paid"
         prospect.stripe_status = "paid"
         prospect.intake_status = prospect.intake_status or "not_started"
@@ -377,6 +397,7 @@ def run_paid_intake_reminder_sweep(hours: int = 12) -> dict[str, Any]:
     cutoff = datetime.utcnow() - timedelta(hours=hours)
     sent_count = 0
     skipped = 0
+    processed_prospects: set[str] = set()
 
     with _session() as session:
         paid_events = session.execute(
@@ -395,6 +416,10 @@ def run_paid_intake_reminder_sweep(hours: int = 12) -> dict[str, Any]:
                 if prospect is None and email:
                     prospect = _ensure_paid_prospect(session, email)
             if prospect is None:
+                skipped += 1
+                continue
+
+            if prospect.external_id in processed_prospects:
                 skipped += 1
                 continue
 
@@ -427,6 +452,8 @@ def run_paid_intake_reminder_sweep(hours: int = 12) -> dict[str, Any]:
                 {"send_result": send_result},
             )
             sent_count += 1
+            processed_prospects.add(prospect.external_id)
+            session.flush()
 
         session.commit()
 
