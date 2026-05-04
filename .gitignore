@@ -6,3 +6,17 @@
 .venv/
 .pytest_cache/
 relay-*.png
+manuscripts/relay_*_snapshot_*.json
+manuscripts/**/main.aux
+manuscripts/**/main.bbl
+manuscripts/**/main.bcf
+manuscripts/**/main.blg
+manuscripts/**/main.log
+manuscripts/**/main.out
+manuscripts/**/main.run.xml
+manuscripts/**/main.pdf
+manuscripts/**/rendered/
+!manuscripts/
+!manuscripts/relay_nature_style/
+!manuscripts/relay_nature_style/figures/
+!manuscripts/relay_nature_style/figures/relay-*.png
