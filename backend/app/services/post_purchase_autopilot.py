@@ -325,6 +325,8 @@ def send_paid_onboarding_for_email(email: str) -> dict[str, Any]:
     email = (email or "").strip().lower()
     if not email:
         return {"status": "ignored", "summary": "missing email"}
+    if _is_internal_email(email):
+        return {"status": "ignored", "summary": "internal buyer email ignored"}
 
     with _session() as session:
         prospect = _ensure_paid_prospect(session, email)
@@ -366,6 +368,8 @@ def send_intake_ack_for_email(email: str) -> dict[str, Any]:
     email = (email or "").strip().lower()
     if not email:
         return {"status": "ignored", "summary": "missing email"}
+    if _is_internal_email(email):
+        return {"status": "ignored", "summary": "internal intake email ignored"}
 
     with _session() as session:
         prospect = _find_prospect_by_email(session, email)
@@ -412,10 +416,16 @@ def run_paid_intake_reminder_sweep(hours: int = 12) -> dict[str, Any]:
             prospect = session.execute(stmt).scalar_one_or_none()
             if prospect is None:
                 email = _stripe_event_email(_safe_json(event.payload_json))
+                if _is_internal_email(email):
+                    skipped += 1
+                    continue
                 prospect = _find_prospect_by_email(session, email) if email else None
                 if prospect is None and email:
                     prospect = _ensure_paid_prospect(session, email)
             if prospect is None:
+                skipped += 1
+                continue
+            if _is_internal_email(prospect.contact_email):
                 skipped += 1
                 continue
 
@@ -477,6 +487,9 @@ def run_post_delivery_upsell_sweep(hours: int = 24) -> dict[str, Any]:
             stmt = select(AcquisitionProspect).where(AcquisitionProspect.external_id == event.prospect_external_id)
             prospect = session.execute(stmt).scalar_one_or_none()
             if prospect is None:
+                skipped += 1
+                continue
+            if _is_internal_email(prospect.contact_email):
                 skipped += 1
                 continue
 
