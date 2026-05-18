@@ -726,6 +726,23 @@ def _reply_autoclose_smoke_interval_hours() -> int:
     return max(_int_env("RELAY_REPLY_AUTOCLOSE_SMOKE_INTERVAL_HOURS", 6), 1)
 
 
+def _reply_text_has_preview_first_path(reply_text: str) -> bool:
+    text = (reply_text or "").lower()
+    has_preview_or_payment_boundary = (
+        "preview before any payment" in text
+        or "preview first" in text
+        or "payment link only with a useful preview" in text
+        or "only after it helps" in text
+    )
+    has_accepted_input_path = (
+        "send one rough note" in text
+        or "reply with one rough" in text
+        or "send one stuck lead" in text
+        or "reply with one stuck" in text
+    )
+    return has_preview_or_payment_boundary and has_accepted_input_path
+
+
 def _payment_webhook_smoke_interval_hours() -> int:
     return max(_int_env("RELAY_PAYMENT_WEBHOOK_SMOKE_INTERVAL_HOURS", 6), 1)
 
@@ -1225,18 +1242,7 @@ def _reply_autoclose_preflight() -> dict[str, Any]:
                 "reply_contains_checkout_url": bool(checkout_url and checkout_url in reply_text),
                 "reply_contains_price": entry_price_label() in reply_text,
                 "reply_contains_notes_url": bool(notes_url and notes_url in reply_text),
-                "reply_contains_preview_first_path": (
-                    (
-                        "preview before any payment" in reply_text.lower()
-                        or "preview first" in reply_text.lower()
-                        or "payment link only with a useful preview" in reply_text.lower()
-                        or "only after it helps" in reply_text.lower()
-                    )
-                    and (
-                        "send one rough note" in reply_text.lower()
-                        or "reply with one rough" in reply_text.lower()
-                    )
-                ),
+                "reply_contains_preview_first_path": _reply_text_has_preview_first_path(reply_text),
             }
         )
         if not settings.buyer_acq_mailbox_address:

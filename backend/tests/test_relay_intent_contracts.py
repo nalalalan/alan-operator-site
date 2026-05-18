@@ -8,6 +8,7 @@ from app.api.routes.relay_intent import (
     _owner_absence_contract,
     _success_governor_contract,
 )
+from app.services.relay_success_controller import _reply_text_has_preview_first_path
 
 
 def test_completed_sample_waits_during_reply_observation_window():
@@ -68,3 +69,11 @@ def test_success_governor_does_not_rotate_before_reply_window_deadline():
     assert owner_absence["permitted_action"] == "observe the active sample until the deadline before rotating one variable"
     assert mandate["state"] == "observe_reply_window"
 
+
+def test_reply_autoclose_accepts_stuck_lead_preview_path():
+    reply_text = (
+        "totally - one follow-up email: preview first, $1 only after it helps\n\n"
+        "send one stuck lead first; i will include the payment link only with a useful preview"
+    )
+
+    assert _reply_text_has_preview_first_path(reply_text)
