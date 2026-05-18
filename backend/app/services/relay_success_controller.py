@@ -1010,6 +1010,9 @@ def _public_offer_preflight() -> dict[str, Any]:
             (
                 "email one rough follow-up draft" in page_lower
                 or "email the draft you would have sent" in page_lower
+                or "email the last reply" in page_lower
+                or "one stalled lead" in page_lower
+                or "stalled lead" in page_lower
                 or "rough follow-up draft" in page_lower
                 or "rough draft or a few bullets" in page_lower
                 or "email one note" in page_lower
@@ -1028,6 +1031,7 @@ def _public_offer_preflight() -> dict[str, Any]:
                 or "pay $1 only if you use it" in page_lower
                 or "no checkout before preview" in page_lower
                 or "one follow-up email" in page_lower
+                or "yes, no, or next step" in page_lower
             )
             and ("no card details on this site" in page_lower or "no card form" in page_lower)
         )

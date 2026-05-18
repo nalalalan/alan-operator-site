@@ -786,7 +786,7 @@ def _clean_reply_text(s: str) -> str:
 def _zero_touch_reply() -> str:
     return _clean_reply_text(
         "totally - keep it simple\n\n"
-        "reply with a rough follow-up draft or a few bullets. remove names or private details if needed. i will send one follow-up email draft first. no link click, upload, download, account, password, card, or payment before preview.\n\n"
+        "reply with one stalled lead, last reply, rough follow-up draft, or a few bullets. remove names or private details if needed. i will send one follow-up email draft first. no link click, upload, download, account, password, card, or payment before preview.\n\n"
         f"if you use the email, i will include the {entry_price_label()} Stripe link with the draft."
     )
 

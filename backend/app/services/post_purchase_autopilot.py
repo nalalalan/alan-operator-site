@@ -184,7 +184,7 @@ def _relay_notes_tally_payload(lead: RelayIntentLead, email: str) -> dict[str, A
     ).strip()
     focus = str(
         metadata.get("focus")
-        or "one client-ready follow-up email and one next step"
+        or "one follow-up email that gets a yes, no, or next step"
     ).strip()
     tone = str(metadata.get("tone") or "clear and professional").strip()
 
@@ -201,7 +201,7 @@ def _relay_notes_tally_payload(lead: RelayIntentLead, email: str) -> dict[str, A
                 field("Client or company name", client_name),
                 field("What should this focus on?", focus),
                 field("Preferred tone for the follow-up email", tone),
-                field("Paste your rough follow-up draft or bullets", notes),
+                field("Paste your stalled lead, rough follow-up draft, or bullets", notes),
             ],
         }
     }
@@ -390,7 +390,7 @@ def send_intake_ack_for_email(email: str) -> dict[str, Any]:
         blocks = [
             _p("Got it."),
             _p("I have what I need from the intake and the follow-up email is in motion."),
-            _p("You'll get one finished client-ready follow-up email."),
+            _p("You'll get one follow-up email meant to get a yes, no, or next step."),
             _p("- Alan"),
         ]
         send_result = _send_html_email(email, subject, blocks)
@@ -569,12 +569,12 @@ def run_messy_notes_checkout_followup_sweep(hours: int = 2) -> dict[str, Any]:
         try:
             external_id = f"relay-lead:{lead.id}"
             blocks = [
-                _p("I have your rough draft."),
+                _p("I have your stalled lead."),
                 _p(
                     "If you want me to turn that into the follow-up email, the paid one-call test is the next step."
                 ),
                 _a(_entry_packet_label(), _entry_packet_link()),
-                _p("I will turn it into one client-ready follow-up email and one concrete next step."),
+                _p("I will turn it into one follow-up email meant to get a yes, no, or next step."),
                 _p("- Alan"),
             ]
             _send_conversion_email(
@@ -654,10 +654,10 @@ def run_messy_notes_second_followup_sweep(hours: int = 24) -> dict[str, Any]:
             external_id = f"relay-lead:{lead.id}"
             blocks = [
                 _p("Closing the loop on your RelayBrief draft."),
-                _p(f"If you still want one rough follow-up turned into a clean email, the {entry_price_label()} one-call test is the next step."),
+                _p(f"If you still want one stalled lead turned into a follow-up email, the {entry_price_label()} one-call test is the next step."),
                 _a(_entry_packet_label(), _entry_packet_link()),
-                _p("No download, install, account, or password. If you want to add or replace the rough draft first, send it here."),
-                _a("Send rough draft", _notes_url()),
+                _p("No download, install, account, or password. If you want to add or replace the stalled lead context first, send it here."),
+                _a("Send stalled lead", _notes_url()),
                 _p("- Alan"),
             ]
             _send_conversion_email(
@@ -728,8 +728,8 @@ def run_sample_request_notes_followup_sweep(hours: int = 24) -> dict[str, Any]:
             external_id = f"relay-lead:{lead.id}"
             blocks = [
                 _p("You asked for the RelayBrief example output."),
-                _p("The real test is one rough follow-up draft or a few bullets."),
-                _a("Send rough draft", _notes_url()),
+                _p("The real test is one stalled lead, last reply, or rough follow-up draft."),
+                _a("Send stalled lead", _notes_url()),
                 _p(f"If you already know you want the paid follow-up email, the one-call test is {entry_price_label()} through Stripe."),
                 _a(_entry_packet_label(), _entry_packet_link()),
                 _p("- Alan"),
@@ -821,8 +821,8 @@ def run_sample_request_second_followup_sweep(hours: int = 72) -> dict[str, Any]:
             external_id = f"relay-lead:{lead.id}"
             blocks = [
                 _p("Checking once more after the RelayBrief example output."),
-                _p("The useful test is still one rough follow-up draft. Send the rough version and the next step stays simple."),
-                _a("Send rough draft", _notes_url()),
+                _p("The useful test is still one stalled lead. Send the rough version and the next step stays simple."),
+                _a("Send stalled lead", _notes_url()),
                 _p(f"If you already know you want the paid follow-up email, the one-call test is {entry_price_label()} through Stripe."),
                 _a(_entry_packet_label(), _entry_packet_link()),
                 _p("- Alan"),
@@ -929,8 +929,8 @@ def run_checkout_intent_followup_sweep(hours: int = 1) -> dict[str, Any]:
                 _p("You opened the RelayBrief payment path."),
                 _p(f"If you still want one messy call turned into a finished follow-up email, the {entry_price_label()} link is here."),
                 _a(_entry_packet_label(), _entry_packet_link()),
-                _p("If you want to add or resend a rough draft first, use the notes form."),
-                _a("Send rough draft", _notes_url()),
+                _p("If you want to add or resend stalled lead context first, use the notes form."),
+                _a("Send stalled lead", _notes_url()),
                 _p("- Alan"),
             ]
             _send_conversion_email(
@@ -1015,7 +1015,7 @@ def run_checkout_intent_second_followup_sweep(hours: int = 24) -> dict[str, Any]
                 _p(f"If you still want the one-call email, the {entry_price_label()} path is still the fastest way to get it finished."),
                 _a(_entry_packet_label(), _entry_packet_link()),
                 _p("If the follow-up draft is not ready yet, send a few rough bullets first and the next step stays simple."),
-                _a("Send rough draft", _notes_url()),
+                _a("Send stalled lead", _notes_url()),
                 _p("- Alan"),
             ]
             _send_conversion_email(
