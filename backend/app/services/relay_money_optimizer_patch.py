@@ -95,7 +95,7 @@ OPTIMIZED_STEP_TEMPLATES = [
         subject="client call follow-up",
         body=(
             "Hey - quick question.\n\n"
-            "I run RelayBrief to turn one stuck lead, last reply, or rough draft into one follow-up email meant to get a yes, no, or next step.\n\n"
+            "I write one follow-up email from one stuck lead, last reply, or rough draft.\n\n"
             "If one follow-up is sitting half-finished at {company_name}, you can send the rough draft here and I will look at it:\n"
             "{notes_url}\n\n"
             "Sample:\n"
@@ -143,7 +143,7 @@ OPTIMIZED_STEP_TEMPLATE_VARIANTS = {
             subject="client call follow-up sample",
             body=(
                 "Hey - quick question.\n\n"
-                "I run RelayBrief to turn one stuck lead, last reply, or rough draft into one follow-up email meant to get a yes, no, or next step.\n\n"
+                "I write one follow-up email from one stuck lead, last reply, or rough draft.\n\n"
                 "Example output:\n"
                 "{sample_url}\n\n"
                 "If one follow-up is sitting half-finished at {company_name}, you can send the rough draft here:\n"
@@ -187,7 +187,7 @@ OPTIMIZED_STEP_TEMPLATE_VARIANTS = {
             body=(
                 "Hey - quick question for {company_name}.\n\n"
                 "After a strong client or sales call, who owns the follow-up email?\n\n"
-                "I run RelayBrief for that cleanup. Your team sends a rough draft or a few bullets, and the follow-up email comes back by email.\n\n"
+                "I write that follow-up. Your team sends a rough draft or a few bullets, and one plain email comes back by email.\n\n"
                 "If nobody clearly owns that job, you can send one messy note here and I will look at it:\n"
                 "{notes_url}\n\n"
                 "- Alan"
@@ -388,7 +388,7 @@ TRUST_FIRST_OUTREACH_TEMPLATES = [
         subject="stuck lead follow-up",
         body=(
             "Hi - if one prospect, client, or lead has gone quiet, reply with the last reply, a rough draft, or a few bullets.\n\n"
-            "You can remove names or private details. I will reply with one follow-up email meant to get a yes, no, or next step. You do not need to click a link, upload anything, download anything, make an account, share a password, enter a card, or pay before preview. If you use the email, I send the {entry_price_label} Stripe link with the draft.\n\n"
+            "You can remove names or private details. I will reply with one follow-up email meant to get a yes, no, or next step. No link click, upload, download, account, password, card form, or payment before preview. If you use it, I send the {entry_price_label} Stripe link afterward.\n\n"
             "If that is not relevant, no need to reply.\n\n"
             "- Alan"
         ),
@@ -399,7 +399,7 @@ TRUST_FIRST_OUTREACH_TEMPLATES = [
         subject="re: stuck lead follow-up",
         body=(
             "Following up once.\n\n"
-            "RelayBrief is a manual stuck-lead follow-up by email: no download, account, password, or card form on the site.\n\n"
+            "This is manual stuck-lead follow-up by email: no download, account, password, upload, card form, or payment before preview.\n\n"
             "Example output:\n"
             "{sample_url}\n\n"
             "If you send one stuck lead, I reply with a short follow-up email preview first. No payment before preview.\n\n"
@@ -1456,10 +1456,10 @@ def optimized_run_custom_outreach_cycle() -> dict[str, Any]:
 def _zero_touch_close_reply() -> str:
     price_label = entry_price_label()
     return (
-        "Yes - here is the RelayBrief example output:\n"
+        "Yes - here is the example output:\n"
         f"{_sample_url()}\n\n"
         "Reply with one stuck lead, last reply, rough follow-up draft, or a few bullets and I will send one follow-up email draft.\n\n"
-        f"If you use the email, I will include the {price_label} Stripe link with the draft.\n\n"
+        f"If you use it, I will send the {price_label} Stripe link afterward.\n\n"
         "No link click, upload, download, account, card, password, or payment before preview.\n\n"
         "- Alan"
     )

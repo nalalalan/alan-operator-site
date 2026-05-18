@@ -718,7 +718,7 @@ def _ensure_stripe_paid_prospect(
         prospect = AcquisitionProspect(
             external_id=external_id,
             contact_email=email,
-            company_name="paid RelayBrief buyer",
+            company_name="paid follow-up buyer",
             source="stripe",
             fit_score=100,
             fit_band="paid",
@@ -733,7 +733,7 @@ def _ensure_stripe_paid_prospect(
     if email and not prospect.contact_email:
         prospect.contact_email = email
     if not prospect.company_name:
-        prospect.company_name = "paid RelayBrief buyer"
+        prospect.company_name = "paid follow-up buyer"
     prospect.source = prospect.source or "stripe"
     prospect.fit_score = max(int(prospect.fit_score or 0), 100)
     prospect.fit_band = prospect.fit_band or "paid"
@@ -787,7 +787,7 @@ def _zero_touch_reply() -> str:
     return _clean_reply_text(
         "totally - keep it simple\n\n"
         "reply with one stuck lead, last reply, rough follow-up draft, or a few bullets. remove names or private details if needed. i will send one follow-up email draft first. no link click, upload, download, account, password, card, or payment before preview.\n\n"
-        f"if you use the email, i will include the {entry_price_label()} Stripe link with the draft."
+        f"if you use it, i will send the {entry_price_label()} Stripe link afterward."
     )
 
 def _auto_reply_text(reply_text: str) -> tuple[str, str | None]:

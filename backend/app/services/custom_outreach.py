@@ -88,7 +88,7 @@ STEP_TEMPLATES = [
         body=(
             "Hey - quick question.\n\n"
             "When a prospect, client, or lead goes quiet, does your team already have someone who turns the last reply into a clear next email?\n\n"
-            "I run RelayBrief for that after-call cleanup. It is a paid one-call service at relaybrief.com; no app, extension, account, or password.\n\n"
+            "I write one follow-up email for that. No app, extension, account, password, upload, card form, or payment before preview.\n\n"
             "Worth sending the sample?\n\n"
             "- Alan"
         ),
@@ -133,7 +133,7 @@ STEP_TEMPLATE_VARIANTS: dict[str, list[StepTemplate]] = {
             subject="after-call follow-up",
             body=(
                 "Hey - quick question.\n\n"
-                "I run RelayBrief to turn one stuck lead, last reply, or rough draft into one follow-up email meant to get a yes, no, or next step.\n\n"
+                "I write one follow-up email from one stuck lead, last reply, or rough draft.\n\n"
                 "Here is the example output:\n"
                 "{sample_url}\n\n"
                 "If there is one messy follow-up from this week, worth testing the {entry_price_label} version?\n\n"
@@ -147,7 +147,7 @@ STEP_TEMPLATE_VARIANTS: dict[str, list[StepTemplate]] = {
             body=(
                 "Following up once.\n\n"
                 "The useful part is not more software. It is getting the post-call cleanup finished when the team is busy.\n\n"
-                "If you send one stuck lead, last reply, or rough draft, Relay sends back one follow-up email meant to get a yes, no, or next step.\n\n"
+                "If you send one stuck lead, last reply, or rough draft, I send back one follow-up email meant to get a yes, no, or next step.\n\n"
                 "Sample:\n"
                 "{sample_url}\n\n"
                 "- Alan"
@@ -175,7 +175,7 @@ STEP_TEMPLATE_VARIANTS: dict[str, list[StepTemplate]] = {
             body=(
                 "Hey - quick question for {company_name}.\n\n"
                 "After a strong client or sales call, who owns the follow-up email?\n\n"
-                "I run RelayBrief for that cleanup. Your team sends a rough draft or a few bullets, and the follow-up email comes back by email.\n\n"
+                "I write that follow-up. Your team sends a rough draft or a few bullets, and one plain email comes back by email.\n\n"
                 "If that is already handled, ignore me. If not, worth sending the sample?\n\n"
                 "- Alan"
             ),
@@ -370,7 +370,7 @@ TRUST_FIRST_STEP_TEMPLATES: list[StepTemplate] = [
         subject="stuck lead follow-up",
         body=(
             "Hi - if one prospect, client, or lead has gone quiet, reply with the last reply, a rough draft, or a few bullets.\n\n"
-            "You can remove names or private details. I will reply with one follow-up email meant to get a yes, no, or next step. You do not need to click a link, upload anything, download anything, make an account, share a password, enter a card, or pay before preview. If you use the email, I send the {entry_price_label} Stripe link with the draft.\n\n"
+            "You can remove names or private details. I will reply with one follow-up email meant to get a yes, no, or next step. No link click, upload, download, account, password, card form, or payment before preview. If you use it, I send the {entry_price_label} Stripe link afterward.\n\n"
             "If that is not relevant, no need to reply.\n\n"
             "- Alan"
         ),
@@ -381,7 +381,7 @@ TRUST_FIRST_STEP_TEMPLATES: list[StepTemplate] = [
         subject="re: stuck lead follow-up",
         body=(
             "Following up once.\n\n"
-            "RelayBrief is a manual stuck-lead follow-up by email: send the last reply, a rough draft, or a few bullets, remove private details if needed, and get a draft before payment.\n\n"
+            "This is manual stuck-lead follow-up by email: send the last reply, a rough draft, or a few bullets, remove private details if needed, and get one email back before payment.\n\n"
             "Example output:\n"
             "{sample_url}\n\n"
             "If you send one stuck lead, I reply with a short follow-up email draft first. No payment before preview.\n\n"

@@ -41,7 +41,7 @@ RECOVERY_STEP_TEMPLATES = [
         subject="stuck lead follow-up",
         body=(
             "Hi - if one sales or client call still needs a follow-up email, reply with a few rough bullets.\n\n"
-            "You can remove names or private details. I will reply with one follow-up email draft you can paste. You do not need to click a link, upload anything, download anything, make an account, share a password, enter a card, or pay before preview. If you use the email, I send the {entry_price_label} Stripe link with the draft.\n\n"
+            "You can remove names or private details. I will reply with one follow-up email draft you can paste. No link click, upload, download, account, password, card form, or payment before preview. If you use it, I send the {entry_price_label} Stripe link afterward.\n\n"
             "If that is not relevant, no need to reply.\n\n"
             "- Alan"
         ),

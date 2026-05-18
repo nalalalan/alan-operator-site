@@ -6,8 +6,8 @@ import re
 
 def scrub_placeholders(text: str) -> str:
     cleaned = text or ""
-    cleaned = cleaned.replace("[Your Name]", "RelayBrief")
-    cleaned = cleaned.replace("[your name]", "RelayBrief")
+    cleaned = cleaned.replace("[Your Name]", "Alan")
+    cleaned = cleaned.replace("[your name]", "Alan")
     cleaned = cleaned.replace("[name if available]", "there")
     cleaned = cleaned.replace("[Name if available]", "there")
     cleaned = re.sub(r"\[[^\]]+\]", "", cleaned)

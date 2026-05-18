@@ -190,7 +190,7 @@ def scope_outline_for(launch_type: LaunchType, opportunity: QualifiedOpportunity
 
     if launch_type == "pilot_first":
         return [
-            "Process one real sales call through the RelayBrief workflow.",
+            "Turn one real sales-call note into a usable follow-up email.",
             "Generate one client-ready follow-up email and a concrete next step.",
             "Review whether the output quality justifies a larger follow-up workflow.",
         ]

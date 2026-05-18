@@ -265,26 +265,26 @@ def render_outreach(lead: LeadCandidate, fit_band: str, outreach_angle: str, rec
         body = (
             f"Hi {first_name},\n\n"
             "If one prospect, client, or lead has gone quiet, reply with the last reply, a rough draft, or a few bullets.\n\n"
-            "You can remove names or private details. I will reply with one follow-up email meant to get a yes, no, or next step. You do not need to click a link, upload anything, download anything, make an account, share a password, enter a card, or pay before preview. If you use the email, I send the $1 Stripe link with the draft.\n\n"
+            "You can remove names or private details. I will reply with one follow-up email meant to get a yes, no, or next step. No link click, upload, download, account, password, card form, or payment before preview. If you use it, I send the $1 Stripe link afterward.\n\n"
             "- Alan"
         )
         return subject, body
 
     if fit_band == "nurture":
-        subject = "RelayBrief fit check"
+        subject = "stuck lead follow-up"
         body = (
             f"Hi {first_name},\n\n"
-            "RelayBrief may be relevant if one prospect, client, or lead has gone quiet and needs a follow-up.\n\n"
+            "This may be relevant if one prospect, client, or lead has gone quiet and needs a follow-up.\n\n"
             "You can reply with the last reply, a rough follow-up draft, or a few bullets and get one email draft first. Remove names or private details if needed. No link click, upload, download, account, card form, or payment before preview.\n\n"
             "If that is not relevant, no need to reply.\n\n"
             "- Alan"
         )
         return subject, body
 
-    subject = "RelayBrief fit check"
+    subject = "stuck lead follow-up"
     body = (
         f"Hi {first_name},\n\n"
-        "RelayBrief turns one stuck lead, last reply, or rough draft into one follow-up email. Preview first. Pay only if you use it.\n\n"
+        "I turn one stuck lead, last reply, or rough draft into one follow-up email. Preview first. Pay only if you use it.\n\n"
         "This only makes sense if a quiet prospect or client still needs one clear next email. If not, no need to reply.\n\n"
         "- Alan"
     )

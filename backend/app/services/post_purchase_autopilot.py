@@ -54,7 +54,7 @@ def _entry_packet_link() -> str:
 
 
 def _entry_packet_label() -> str:
-    return f"Open Stripe checkout ({entry_price_label()})"
+    return f"Stripe link ({entry_price_label()})"
 
 
 def _monthly_url() -> str:
@@ -118,7 +118,7 @@ def _ensure_paid_prospect(session: Session, email: str) -> AcquisitionProspect:
         prospect = AcquisitionProspect(
             external_id=external_id,
             contact_email=email,
-            company_name="paid RelayBrief buyer",
+            company_name="paid follow-up buyer",
             source="stripe",
             status="paid",
             stripe_status="paid",
@@ -249,7 +249,7 @@ def _fulfill_paid_relay_notes(session: Session, prospect: AcquisitionProspect, e
             session,
             "autopilot_paid_relay_notes_failed",
             prospect.external_id,
-            "paid RelayBrief notes fulfillment failed",
+            "paid follow-up notes fulfillment failed",
             {"email": email, "relay_lead_id": lead.id, "error": str(exc)[:1000]},
         )
         session.commit()
@@ -653,7 +653,7 @@ def run_messy_notes_second_followup_sweep(hours: int = 24) -> dict[str, Any]:
         try:
             external_id = f"relay-lead:{lead.id}"
             blocks = [
-                _p("Closing the loop on your RelayBrief draft."),
+                _p("Closing the loop on your follow-up email draft."),
                 _p(f"If you still want one stuck lead turned into a follow-up email, the {entry_price_label()} one-call test is the next step."),
                 _a(_entry_packet_label(), _entry_packet_link()),
                 _p("No download, install, account, or password. If you want to add or replace the stuck lead context first, send it here."),
@@ -727,7 +727,7 @@ def run_sample_request_notes_followup_sweep(hours: int = 24) -> dict[str, Any]:
         try:
             external_id = f"relay-lead:{lead.id}"
             blocks = [
-                _p("You asked for the RelayBrief example output."),
+                _p("You asked for the example output."),
                 _p("The real test is one stuck lead, last reply, or rough follow-up draft."),
                 _a("Send stuck lead", _notes_url()),
                 _p(f"If you already know you want the paid follow-up email, the one-call test is {entry_price_label()} through Stripe."),
@@ -820,7 +820,7 @@ def run_sample_request_second_followup_sweep(hours: int = 72) -> dict[str, Any]:
         try:
             external_id = f"relay-lead:{lead.id}"
             blocks = [
-                _p("Checking once more after the RelayBrief example output."),
+                _p("Checking once more after the example output."),
                 _p("The useful test is still one stuck lead. Send the rough version and the next step stays simple."),
                 _a("Send stuck lead", _notes_url()),
                 _p(f"If you already know you want the paid follow-up email, the one-call test is {entry_price_label()} through Stripe."),
@@ -926,7 +926,7 @@ def run_checkout_intent_followup_sweep(hours: int = 1) -> dict[str, Any]:
             session_id = ((event.session_id if event is not None else lead.session_id) or "").strip()
             external_id = f"relay-session:{session_id}"
             blocks = [
-                _p("You opened the RelayBrief payment path."),
+                _p("You opened the payment path."),
                 _p(f"If you still want one messy call turned into a finished follow-up email, the {entry_price_label()} link is here."),
                 _a(_entry_packet_label(), _entry_packet_link()),
                 _p("If you want to add or resend stuck lead context first, use the notes form."),
@@ -935,7 +935,7 @@ def run_checkout_intent_followup_sweep(hours: int = 1) -> dict[str, Any]:
             ]
             _send_conversion_email(
                 to_email=lead.email,
-                subject="Still want the RelayBrief email?",
+                subject="Still want the follow-up email?",
                 blocks=blocks,
                 event_type="autopilot_checkout_intent_followup_sent",
                 prospect_external_id=external_id,
@@ -1011,7 +1011,7 @@ def run_checkout_intent_second_followup_sweep(hours: int = 24) -> dict[str, Any]
                 session_id = followup.prospect_external_id.split(":", 1)[1].strip()
             external_id = f"relay-session:{session_id}"
             blocks = [
-                _p("Closing the loop on the RelayBrief follow-up email."),
+                _p("Closing the loop on the follow-up email."),
                 _p(f"If you still want the one-call email, the {entry_price_label()} path is still the fastest way to get it finished."),
                 _a(_entry_packet_label(), _entry_packet_link()),
                 _p("If the follow-up draft is not ready yet, send a few rough bullets first and the next step stays simple."),
@@ -1020,7 +1020,7 @@ def run_checkout_intent_second_followup_sweep(hours: int = 24) -> dict[str, Any]
             ]
             _send_conversion_email(
                 to_email=lead.email,
-                subject="Should RelayBrief still do this one?",
+                subject="Should I still do this one?",
                 blocks=blocks,
                 event_type="autopilot_checkout_intent_second_followup_sent",
                 prospect_external_id=external_id,

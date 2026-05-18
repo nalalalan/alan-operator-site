@@ -191,7 +191,7 @@ def _build_good_fit_email(fields: dict[str, str]) -> tuple[str, str]:
     sample_pdf_url = _sample_pdf_url()
 
     blocks = [
-        _paragraph("Hi - RelayBrief here."),
+        _paragraph("Hi - Alan here."),
         _paragraph(f"Thanks for sending details for {agency}."),
     ]
     if calls_line:
@@ -201,19 +201,19 @@ def _build_good_fit_email(fields: dict[str, str]) -> tuple[str, str]:
     blocks.append(_link_paragraph("View example output", sample_pdf_url))
     blocks.append(_paragraph("If this looks right, reply with one stuck lead, last reply, or rough follow-up draft. I will send a short follow-up email preview first. No payment before preview."))
     blocks.append(_paragraph("- Alan"))
-    return "Your RelayBrief request", _wrap_email(blocks)
+    return "stuck lead follow-up", _wrap_email(blocks)
 
 
 def _build_lower_fit_email(fields: dict[str, str]) -> tuple[str, str]:
     agency = fields.get("agency_name") or "your agency"
     sample_pdf_url = _sample_pdf_url()
     blocks = [
-        _paragraph("Hi - RelayBrief here."),
+        _paragraph("Hi - Alan here."),
         _paragraph(f"Thanks for sending details for {agency}."),
         _paragraph(
-            "Based on this request, I am not yet sure RelayBrief is the right fit. "
-            "This workflow is strongest when a founder-led team needs post-call follow-up, "
-            "a clean client-ready email, and one concrete next step after real sales calls."
+            "Based on this request, I am not yet sure this is the right fit. "
+            "This is strongest when a founder-led team has one stuck lead, "
+            "one real last reply or rough draft, and needs one clear next email."
         ),
         _paragraph("Here is an example output:"),
         _link_paragraph("View example output", sample_pdf_url),
@@ -223,7 +223,7 @@ def _build_lower_fit_email(fields: dict[str, str]) -> tuple[str, str]:
         ),
         _paragraph("- Alan"),
     ]
-    return "Your RelayBrief request", _wrap_email(blocks)
+    return "stuck lead follow-up", _wrap_email(blocks)
 
 
 def _build_buyer_email(fields: dict[str, str]) -> tuple[str, str]:

@@ -73,7 +73,7 @@ def test_success_governor_does_not_rotate_before_reply_window_deadline():
 def test_reply_autoclose_accepts_stuck_lead_preview_path():
     reply_text = (
         "totally - one follow-up email: preview first, $1 only after it helps\n\n"
-        "send one stuck lead first; i will include the payment link only with a useful preview"
+        "send one stuck lead first. preview first; payment link afterward if you use it"
     )
 
     assert _reply_text_has_preview_first_path(reply_text)

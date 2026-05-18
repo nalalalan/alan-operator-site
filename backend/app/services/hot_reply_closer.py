@@ -91,7 +91,7 @@ def build_hot_reply_decision(text: str) -> HotReplyDecision:
             reply_text=(
                 "totally - pick whichever is the best fit\n\n"
                 f"{_ladder_block()}\n\n"
-                "send one stuck lead first; i will include the payment link only with a useful preview"
+                "send one stuck lead first. preview first; payment link afterward if you use it"
             ),
             summary="pricing question",
         )

@@ -368,7 +368,7 @@ def _build_initial_body(prospect: BuyerAcquisitionProspect) -> str:
     return (
         f"{greeting}\n\n"
         "If one prospect, client, or lead has gone quiet, reply with the last reply, a rough draft, or a few bullets.\n\n"
-        "You can remove names or private details. I will reply with one follow-up email meant to get a yes, no, or next step. You do not need to click a link, upload anything, download anything, make an account, share a password, enter a card, or pay before preview. If you use the email, I send the $1 Stripe link with the draft.\n\n"
+        "You can remove names or private details. I will reply with one follow-up email meant to get a yes, no, or next step. No link click, upload, download, account, password, card form, or payment before preview. If you use it, I send the $1 Stripe link afterward.\n\n"
         "- Alan"
     )
 
@@ -470,7 +470,7 @@ def _build_positive_reply_body(prospect: BuyerAcquisitionProspect) -> str:
     return (
         "Great.\n\n"
         "Reply with one stuck lead, last reply, rough follow-up draft, or a few bullets. Remove names or private details if needed. I will send one follow-up email draft first.\n\n"
-        f"If you use the email, I will include the {entry_price_label()} Stripe link with the draft.\n\n"
+        f"If you use it, I will send the {entry_price_label()} Stripe link afterward.\n\n"
         "No link click, upload, download, account, card, password, or payment before preview. The email comes back by email.\n\n"
         "- Alan"
     )

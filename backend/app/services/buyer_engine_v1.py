@@ -230,9 +230,9 @@ def render_buyer_reply(
     sample_text = _text_link(sample_packet_url, "View example output")
 
     if route == "pilot_path":
-        subject = "Your RelayBrief request"
+        subject = "stuck lead follow-up"
         text_body = (
-            "Hi - RelayBrief here.\n\n"
+            "Hi - Alan here.\n\n"
             f"Thanks for sending details for {agency}.\n\n"
             f"{calls_text}\n\n"
             f"The main friction is {friction}.\n\n"
@@ -242,7 +242,7 @@ def render_buyer_reply(
             "- Alan"
         )
         html_body = (
-            f"<p>Hi - RelayBrief here.</p>"
+            f"<p>Hi - Alan here.</p>"
             f"<p>Thanks for sending details for {escape(agency)}.</p>"
             f"<p>{escape(calls_text)}</p>"
             f"<p>The main friction is {escape(friction)}.</p>"
@@ -254,12 +254,12 @@ def render_buyer_reply(
         return subject, text_body, html_body
 
     if route == "clarify_path":
-        subject = "Your RelayBrief request"
+        subject = "stuck lead follow-up"
         text_body = (
-            "Hi - RelayBrief here.\n\n"
+            "Hi - Alan here.\n\n"
             f"Thanks for sending details for {agency}.\n\n"
-            "Based on this request, I am not yet sure RelayBrief is the right fit. "
-            "This workflow is strongest when a founder-led team has one stuck lead "
+            "Based on this request, I am not yet sure this is the right fit. "
+            "This is strongest when a founder-led team has one stuck lead "
             "and needs one email that gets a yes, no, or next step.\n\n"
             "Here is an example output:\n\n"
             f"{sample_text}\n\n"
@@ -267,10 +267,10 @@ def render_buyer_reply(
             "- Alan"
         )
         html_body = (
-            f"<p>Hi - RelayBrief here.</p>"
+            f"<p>Hi - Alan here.</p>"
             f"<p>Thanks for sending details for {escape(agency)}.</p>"
-            "<p>Based on this request, I am not yet sure RelayBrief is the right fit. "
-            "This workflow is strongest when a founder-led team has one stuck lead "
+            "<p>Based on this request, I am not yet sure this is the right fit. "
+            "This is strongest when a founder-led team has one stuck lead "
             "and needs one email that gets a yes, no, or next step.</p>"
             "<p>Here is an example output:</p>"
             f"<p>{sample_html}</p>"
@@ -279,12 +279,12 @@ def render_buyer_reply(
         )
         return subject, text_body, html_body
 
-    subject = "Your RelayBrief request"
+    subject = "stuck lead follow-up"
     text_body = (
-        "Hi - RelayBrief here.\n\n"
+        "Hi - Alan here.\n\n"
         f"Thanks for sending details for {agency}.\n\n"
-        "Based on this request, I do not think RelayBrief is the right fit yet. "
-        "This workflow is strongest when the buyer has real sales calls, visible post-call admin drag, "
+        "Based on this request, I do not think this is the right fit yet. "
+        "This is strongest when the buyer has one quiet prospect, a real last reply or rough draft, "
         "and a need for follow-up material that moves the deal forward.\n\n"
         "Here is an example output:\n\n"
         f"{sample_text}\n\n"
@@ -292,10 +292,10 @@ def render_buyer_reply(
         "- Alan"
     )
     html_body = (
-        f"<p>Hi - RelayBrief here.</p>"
+        f"<p>Hi - Alan here.</p>"
         f"<p>Thanks for sending details for {escape(agency)}.</p>"
-        "<p>Based on this request, I do not think RelayBrief is the right fit yet. "
-        "This workflow is strongest when the buyer has real sales calls, visible post-call admin drag, "
+        "<p>Based on this request, I do not think this is the right fit yet. "
+        "This is strongest when the buyer has one quiet prospect, a real last reply or rough draft, "
         "and a need for follow-up material that moves the deal forward.</p>"
         "<p>Here is an example output:</p>"
         f"<p>{sample_html}</p>"
