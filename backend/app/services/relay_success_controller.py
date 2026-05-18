@@ -1022,10 +1022,13 @@ def _public_offer_preflight() -> dict[str, Any]:
                 or "only if you want the finished packet" in page_lower
                 or "only if it helps" in page_lower
                 or "pay $1 if you use it" in page_lower
+                or "no checkout before preview" in page_lower
+                or "$1 after a usable draft" in page_lower
             )
             and ("no card details on this site" in page_lower or "no card form" in page_lower)
         )
         money_path_copy = checkout_first_copy or payment_after_fit_copy
+        requires_public_checkout = not email_first_money_path
         detail.update(
             {
                 "status_code": page_response.status_code,
@@ -1038,6 +1041,7 @@ def _public_offer_preflight() -> dict[str, Any]:
                 "contains_paid_intake_copy": paid_intake_copy,
                 "notes_path_ok": notes_path_ok,
                 "contains_email_first_money_path": email_first_money_path,
+                "requires_public_checkout": requires_public_checkout,
                 "contains_lead_api": "/api/relay/lead" in combined_text,
                 "contains_checkout_action": "checkout_click" in page_text or "js-checkout" in page_text,
                 "contains_checkout_url": bool(checkout_url and checkout_url in combined_text),
@@ -1061,9 +1065,9 @@ def _public_offer_preflight() -> dict[str, Any]:
             missing.append("PUBLIC_OFFER_LEAD_API")
         if not notes_path_ok:
             missing.append("PUBLIC_OFFER_NOTES_PATH")
-        if not detail["contains_checkout_action"]:
+        if requires_public_checkout and not detail["contains_checkout_action"]:
             missing.append("PUBLIC_OFFER_CHECKOUT_ACTION")
-        if checkout_url and not detail["contains_checkout_url"]:
+        if requires_public_checkout and checkout_url and not detail["contains_checkout_url"]:
             missing.append("PUBLIC_OFFER_CHECKOUT_URL")
         if not detail["contains_money_path_copy"]:
             missing.append("PUBLIC_OFFER_MONEY_PATH_COPY")

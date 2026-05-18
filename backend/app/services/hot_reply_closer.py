@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 from typing import Literal
 
-from app.core.config import entry_checkout_url, entry_price_label, settings
+from app.core.config import entry_price_label, settings
 
 
 Intent = Literal[
@@ -32,28 +31,10 @@ class HotReplyDecision:
 
 
 def _ladder_block() -> str:
-    packet = entry_checkout_url()
-    offers = [(f"one follow-up email ({entry_price_label()})", packet)]
-    seen = {packet}
-    candidates = [
-        (
-            "5-call sprint ($750)",
-            os.getenv("PACKET_5_PACK_URL", "").strip() or getattr(settings, "packet_5_pack_url", ""),
-        ),
-        (
-            "done-for-you week ($3000)",
-            os.getenv("WEEKLY_SPRINT_URL", "").strip() or getattr(settings, "weekly_sprint_url", ""),
-        ),
-        (
-            "done-for-you month ($7500)",
-            os.getenv("MONTHLY_AUTOPILOT_URL", "").strip() or getattr(settings, "monthly_autopilot_url", ""),
-        ),
-    ]
-    for label, url in candidates:
-        if url and url not in seen:
-            offers.append((label, url))
-            seen.add(url)
-    return "\n\n".join(f"{label}:\n{url}" for label, url in offers)
+    return (
+        f"one follow-up email: preview first, {entry_price_label()} only after it helps\n"
+        "larger cleanup: Alan replies manually after the first useful preview"
+    )
 
 
 def build_hot_reply_decision(text: str) -> HotReplyDecision:
@@ -80,7 +61,7 @@ def build_hot_reply_decision(text: str) -> HotReplyDecision:
             reply_text=(
                 "happy to keep this simple\n\n"
                 f"{_ladder_block()}\n\n"
-                "if the week or month is the real fit, start there and intake opens automatically after checkout"
+                "send one rough note first and i will reply with the preview before any payment"
             ),
             summary="call request / high intent",
         )
@@ -110,7 +91,7 @@ def build_hot_reply_decision(text: str) -> HotReplyDecision:
             reply_text=(
                 "totally - pick whichever is the best fit\n\n"
                 f"{_ladder_block()}\n\n"
-                "after checkout, intake opens automatically"
+                "send one rough note first; i will include the payment link only with a useful preview"
             ),
             summary="pricing question",
         )
@@ -124,8 +105,7 @@ def build_hot_reply_decision(text: str) -> HotReplyDecision:
             should_stop_sequence=True,
             reply_text=(
                 f"totally fair\n\nsite + sample:\n{settings.landing_page_url}\n\n"
-                f"lowest-risk test:\n{entry_checkout_url()}\n\n"
-                "if you already know the workflow is useful, the sprint/week options are the better fit"
+                "send one rough note first. i will reply with the preview before any payment."
             ),
             summary="trust / scope objection",
         )
@@ -139,8 +119,7 @@ def build_hot_reply_decision(text: str) -> HotReplyDecision:
             should_stop_sequence=True,
             reply_text=(
                 "makes sense\n\n"
-                f"lowest-friction option is one real call:\n{entry_checkout_url()}\n\n"
-                "if you want this off your plate for the week instead, the week option is probably the better fit"
+                "lowest-friction option is one real call. send one rough note first; i will reply with the preview before any payment."
             ),
             summary="timing objection",
         )

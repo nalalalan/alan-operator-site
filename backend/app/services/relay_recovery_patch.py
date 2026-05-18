@@ -42,7 +42,7 @@ RECOVERY_STEP_TEMPLATES = [
         body=(
             "Hi - I run RelayBrief at relaybrief.com.\n\n"
             "It turns rough notes from one sales or client call into one clean follow-up email.\n\n"
-            "No app, extension, executable, account, password, or card form. If you send one rough note, I reply with a short follow-up email preview first. Pay {entry_price_label} only if it helps.\n\n"
+            "No app, extension, executable, account, password, card form, or payment before preview. If the preview helps, I send the {entry_price_label} Stripe link with it.\n\n"
             "If that is not relevant, no need to reply.\n\n"
             "- Alan"
         ),
@@ -54,7 +54,7 @@ RECOVERY_STEP_TEMPLATES = [
         body=(
             "Following up once with the example output:\n"
             "{sample_url}\n\n"
-            "The test is one call by email: send one rough note, get a short follow-up email preview first, pay {entry_price_label} only if useful. No software download, account, password, or card form.\n\n"
+            "The test is one call by email: send one rough note, get a short follow-up email preview first. No payment before preview. No software download, account, password, or card form.\n\n"
             "- Alan"
         ),
         delay_after_prev_days=1,

@@ -238,7 +238,7 @@ def render_buyer_reply(
             f"The main friction is {friction}.\n\n"
             "Here is an example output:\n\n"
             f"{sample_text}\n\n"
-            "If this looks right, reply with one recent call note. I will send a short follow-up email preview first. Pay $1 only if it helps.\n\n"
+            "If this looks right, reply with one recent call note. I will send a short follow-up email preview first. No payment before preview.\n\n"
             "- Alan"
         )
         html_body = (
@@ -248,7 +248,7 @@ def render_buyer_reply(
             f"<p>The main friction is {escape(friction)}.</p>"
             "<p>Here is an example output:</p>"
             f"<p>{sample_html}</p>"
-            "<p>If this looks right, reply with one recent call note. I will send a short follow-up email preview first. Pay $1 only if it helps.</p>"
+            "<p>If this looks right, reply with one recent call note. I will send a short follow-up email preview first. No payment before preview.</p>"
             "<p>- Alan</p>"
         )
         return subject, text_body, html_body

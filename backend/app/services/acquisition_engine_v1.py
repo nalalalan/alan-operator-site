@@ -266,7 +266,7 @@ def render_outreach(lead: LeadCandidate, fit_band: str, outreach_angle: str, rec
             f"Hi {first_name},\n\n"
             "I run RelayBrief at relaybrief.com.\n\n"
             "It turns rough notes from one sales or client call into one clean follow-up email.\n\n"
-            "No download, install, account, password, or card form. If you send one rough note, I reply with a short follow-up email preview first. Pay $1 only if it helps.\n\n"
+            "No download, install, account, password, card form, or payment before preview. If the preview helps, I send the $1 Stripe link with it.\n\n"
             "- Alan"
         )
         return subject, body
@@ -276,7 +276,7 @@ def render_outreach(lead: LeadCandidate, fit_band: str, outreach_angle: str, rec
         body = (
             f"Hi {first_name},\n\n"
             "I run RelayBrief at relaybrief.com.\n\n"
-            "It may be relevant if rough sales or client-call notes are turning into delayed follow-up. You can send one rough note and get a short follow-up email preview first. Pay $1 only if it helps.\n\n"
+            "It may be relevant if rough sales or client-call notes are turning into delayed follow-up. You can send one rough note and get a short follow-up email preview first. No payment before preview.\n\n"
             "No download, install, account, password, or card form. If that is not relevant, no need to reply.\n\n"
             "- Alan"
         )
@@ -285,7 +285,7 @@ def render_outreach(lead: LeadCandidate, fit_band: str, outreach_angle: str, rec
     subject = "RelayBrief fit check"
     body = (
         f"Hi {first_name},\n\n"
-        "I run RelayBrief at relaybrief.com. It turns one rough call note into one follow-up email. Preview first; $1 only if useful.\n\n"
+        "I run RelayBrief at relaybrief.com. It turns one rough call note into one follow-up email. Preview first. Payment only after a useful preview.\n\n"
         "This only makes sense if post-call follow-up is actually slow or annoying. If not, no need to reply.\n\n"
         "- Alan"
     )

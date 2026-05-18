@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from app.core.config import entry_checkout_url, entry_price_label, settings
+from app.core.config import entry_price_label, settings
 from app.db.base import SessionLocal
 from app.models.buyer_acquisition_v1 import BuyerAcquisitionMessage, BuyerAcquisitionProspect
 
@@ -369,7 +369,7 @@ def _build_initial_body(prospect: BuyerAcquisitionProspect) -> str:
         f"{greeting}\n\n"
         "I run RelayBrief at relaybrief.com.\n\n"
         "It turns rough notes from one sales or client call into one clean follow-up email.\n\n"
-        "No download, install, account, password, or card form. If you send one rough note, I reply with a short follow-up email preview first. Pay $1 only if it helps.\n\n"
+        "No download, install, account, password, card form, or payment before preview. If the preview helps, I send the $1 Stripe link with it.\n\n"
         "- Alan"
     )
 
@@ -468,12 +468,10 @@ def classify_reply_text(reply_text: str) -> str:
 
 
 def _build_positive_reply_body(prospect: BuyerAcquisitionProspect) -> str:
-    intake_url = getattr(settings, "client_intake_url", "") or settings.client_intake_destination
     return (
         "Great.\n\n"
-        "Send one rough note first and I will reply with a short follow-up email preview.\n\n"
-        f"If it helps, the {entry_price_label()} Stripe link is here:\n{entry_checkout_url()}\n\n"
-        f"If you prefer the intake page:\n{intake_url}\n\n"
+        "Reply with one rough call note. I will send the follow-up email preview first.\n\n"
+        f"If the preview helps, I will include the {entry_price_label()} Stripe link with it.\n\n"
         "No download, install, account, or password. The email comes back by email.\n\n"
         "- Alan"
     )

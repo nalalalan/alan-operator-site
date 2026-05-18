@@ -127,8 +127,7 @@ OPTIMIZED_STEP_TEMPLATES = [
             "If after-call cleanup is not a real bottleneck, no worries.\n\n"
             "If one call is worth testing, send the messy notes here:\n"
             "{notes_url}\n\n"
-            "Or start the {entry_price_label} follow-up email directly here:\n"
-            "{packet_checkout_url}\n\n"
+            "I will preview it before any payment.\n\n"
             "Either way, this is my last email unless you reply.\n\n"
             "- Alan"
         ),
@@ -175,8 +174,7 @@ OPTIMIZED_STEP_TEMPLATE_VARIANTS = {
                 "If the sample is not relevant, no worries.\n\n"
                 "If one real call is worth testing, send rough notes here:\n"
                 "{notes_url}\n\n"
-                "Or start the {entry_price_label} follow-up email directly here:\n"
-                "{packet_checkout_url}\n\n"
+                "I will preview it before any payment.\n\n"
                 "- Alan"
             ),
             delay_after_prev_days=2,
@@ -218,8 +216,7 @@ OPTIMIZED_STEP_TEMPLATE_VARIANTS = {
                 "If post-call cleanup is already owned and fast, no worries.\n\n"
                 "If one call is worth testing, send rough notes here:\n"
                 "{notes_url}\n\n"
-                "Or start the {entry_price_label} follow-up email here:\n"
-                "{packet_checkout_url}\n\n"
+                "I will preview it before any payment.\n\n"
                 "- Alan"
             ),
             delay_after_prev_days=2,
@@ -236,7 +233,7 @@ OPTIMIZED_STEP_TEMPLATE_VARIANTS = {
                 "{sample_url}\n\n"
                 "Send rough notes first:\n"
                 "{notes_url}\n\n"
-                "I will reply with a short follow-up email preview. Pay {entry_price_label} only if it helps.\n\n"
+                "I will reply with a short follow-up email preview. No payment before preview.\n\n"
                 "- Alan"
             ),
             delay_after_prev_days=0,
@@ -349,7 +346,7 @@ OPTIMIZED_STEP_TEMPLATE_VARIANTS = {
             body=(
                 "Hey - quick question.\n\n"
                 "When a good sales or client call ends at {company_name}, do follow-ups ever sit because the email is still rough notes?\n\n"
-                "Relay is cleanup for one call: send rough notes, get a short follow-up email preview, then pay {entry_price_label} only if it helps.\n\n"
+                "Relay is cleanup for one call: send rough notes, get a short follow-up email preview first. No payment before preview.\n\n"
                 "Send the rough note here:\n"
                 "{notes_url}\n\n"
                 "- Alan"
@@ -375,8 +372,9 @@ OPTIMIZED_STEP_TEMPLATE_VARIANTS = {
             body=(
                 "Last note from me.\n\n"
                 "If delayed follow-up is not a bottleneck, no worries.\n\n"
-                "If one call is worth cleaning up, the {entry_price_label} test is here:\n"
-                "{packet_checkout_url}\n\n"
+                "If one call is worth cleaning up, send one rough note first:\n"
+                "{notes_url}\n\n"
+                "I will preview it before any payment.\n\n"
                 "- Alan"
             ),
             delay_after_prev_days=2,
@@ -391,7 +389,7 @@ TRUST_FIRST_OUTREACH_TEMPLATES = [
         body=(
             "Hi - I run RelayBrief at relaybrief.com.\n\n"
             "It turns rough notes from one sales or client call into one clean follow-up email.\n\n"
-            "No download, install, account, password, or card form. If you send one rough note, I reply with a short follow-up email preview first. Pay {entry_price_label} only if it helps.\n\n"
+            "No download, install, account, password, card form, or payment before preview. If the preview helps, I send the {entry_price_label} Stripe link with it.\n\n"
             "If that is not relevant, no need to reply.\n\n"
             "- Alan"
         ),
@@ -405,7 +403,7 @@ TRUST_FIRST_OUTREACH_TEMPLATES = [
             "RelayBrief is one-call email cleanup: no download, account, password, or card form on the site.\n\n"
             "Example output:\n"
             "{sample_url}\n\n"
-            "If you send one rough note, I reply with a short follow-up email preview first. Pay {entry_price_label} only if it is useful.\n\n"
+            "If you send one rough note, I reply with a short follow-up email preview first. No payment before preview.\n\n"
             "If not, no need to reply.\n\n"
             "- Alan"
         ),
@@ -1462,8 +1460,7 @@ def _zero_touch_close_reply() -> str:
         "Yes - here is the RelayBrief example output:\n"
         f"{_sample_url()}\n\n"
         "Send one rough note first and I will reply with a short follow-up email preview.\n\n"
-        f"If it helps, the one-call test is {price_label} through Stripe:\n"
-        f"{entry_checkout_url()}\n\n"
+        f"If the preview helps, I will include the {price_label} Stripe link with it.\n\n"
         "No download, install, account, password, or card form on the site.\n\n"
         "- Alan"
     )

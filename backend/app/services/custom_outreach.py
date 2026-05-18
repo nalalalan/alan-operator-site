@@ -71,10 +71,9 @@ LEGACY_STEP_TEMPLATES: list[StepTemplate] = [
         subject="re: after-call follow-up",
         body=(
             "Last nudge.\n\n"
-            "The easiest way to test it is one real call:\n"
-            "{packet_checkout_url}\n\n"
-            "If the pain is recurring, the bigger options are here:\n"
-            "{landing_page_url}\n\n"
+            "The easiest way to test it is one rough note first:\n"
+            "{notes_url}\n\n"
+            "I will preview it before any payment.\n\n"
             "- Alan"
         ),
         delay_after_prev_days=2,
@@ -113,8 +112,9 @@ STEP_TEMPLATES = [
         subject="re: after-call follow-up",
         body=(
             "Last note from me.\n\n"
-            "If after-call follow-up is a real bottleneck, the lowest-friction test is one call for {entry_price_label}:\n"
-            "{packet_checkout_url}\n\n"
+            "If after-call follow-up is a real bottleneck, the lowest-friction test is one rough note first:\n"
+            "{notes_url}\n\n"
+            "I will preview it before any payment.\n\n"
             "More detail is here:\n"
             "{landing_page_url}\n\n"
             "If it is not relevant, no worries - I will not keep chasing.\n\n"
@@ -160,8 +160,9 @@ STEP_TEMPLATE_VARIANTS: dict[str, list[StepTemplate]] = {
             body=(
                 "Last note from me.\n\n"
                 "If after-call cleanup is not a problem, no worries.\n\n"
-                "If it is, the smallest test is one call for {entry_price_label}:\n"
-                "{packet_checkout_url}\n\n"
+                "If it is, the smallest test is one rough note first:\n"
+                "{notes_url}\n\n"
+                "I will preview it before any payment.\n\n"
                 "- Alan"
             ),
             delay_after_prev_days=2,
@@ -199,8 +200,9 @@ STEP_TEMPLATE_VARIANTS: dict[str, list[StepTemplate]] = {
             body=(
                 "Last note from me.\n\n"
                 "If post-call cleanup is not costing time, no worries.\n\n"
-                "If one call is worth testing, the {entry_price_label} version is here:\n"
-                "{packet_checkout_url}\n\n"
+                "If one call is worth testing, send one rough note first:\n"
+                "{notes_url}\n\n"
+                "I will preview it before any payment.\n\n"
                 "- Alan"
             ),
             delay_after_prev_days=2,
@@ -217,7 +219,7 @@ STEP_TEMPLATE_VARIANTS: dict[str, list[StepTemplate]] = {
                 "{sample_url}\n\n"
                 "Send rough notes first:\n"
                 "{notes_url}\n\n"
-                "I will reply with a short follow-up email preview. Pay {entry_price_label} only if it helps.\n\n"
+                "I will reply with a short follow-up email preview. No payment before preview.\n\n"
                 "- Alan"
             ),
             delay_after_prev_days=0,
@@ -328,7 +330,7 @@ STEP_TEMPLATE_VARIANTS: dict[str, list[StepTemplate]] = {
             body=(
                 "Hey - quick question.\n\n"
                 "When a good sales or client call ends at {company_name}, do follow-ups ever sit because the email is still rough notes?\n\n"
-                "Relay is cleanup for one call: send rough notes, get a short follow-up email preview, then pay {entry_price_label} only if it helps.\n\n"
+                "Relay is cleanup for one call: send rough notes, get a short follow-up email preview first. No payment before preview.\n\n"
                 "- Alan"
             ),
             delay_after_prev_days=0,
@@ -352,8 +354,9 @@ STEP_TEMPLATE_VARIANTS: dict[str, list[StepTemplate]] = {
             body=(
                 "Last note from me.\n\n"
                 "If delayed follow-up is not a bottleneck, no worries.\n\n"
-                "If one call is worth cleaning up, the {entry_price_label} test is here:\n"
-                "{packet_checkout_url}\n\n"
+                "If one call is worth cleaning up, send one rough note first:\n"
+                "{notes_url}\n\n"
+                "I will preview it before any payment.\n\n"
                 "- Alan"
             ),
             delay_after_prev_days=2,
@@ -368,7 +371,7 @@ TRUST_FIRST_STEP_TEMPLATES: list[StepTemplate] = [
         body=(
             "Hi - I run RelayBrief at relaybrief.com.\n\n"
             "It turns rough notes from one sales or client call into one clean follow-up email.\n\n"
-            "No download, install, account, password, or card form. If you send one rough note, I reply with a short follow-up email preview first. Pay {entry_price_label} only if it helps.\n\n"
+            "No download, install, account, password, card form, or payment before preview. If the preview helps, I send the {entry_price_label} Stripe link with it.\n\n"
             "If that is not relevant, no need to reply.\n\n"
             "- Alan"
         ),
@@ -382,7 +385,7 @@ TRUST_FIRST_STEP_TEMPLATES: list[StepTemplate] = [
             "RelayBrief is one-call email cleanup: no download, account, password, or card form on the site.\n\n"
             "Example output:\n"
             "{sample_url}\n\n"
-            "If you send one rough note, I reply with a short follow-up email preview first. Pay {entry_price_label} only if it is useful.\n\n"
+            "If you send one rough note, I reply with a short follow-up email preview first. No payment before preview.\n\n"
             "If not, no need to reply.\n\n"
             "- Alan"
         ),

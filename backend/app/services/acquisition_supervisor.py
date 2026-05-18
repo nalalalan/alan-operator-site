@@ -784,22 +784,10 @@ def _clean_reply_text(s: str) -> str:
 
 
 def _zero_touch_reply() -> str:
-    checkout_url = entry_checkout_url()
-    offers = [(f"one follow-up email ({entry_price_label()})", checkout_url)]
-    seen = {checkout_url}
-    for label, url in [
-        ("5-call sprint ($750)", getattr(settings, "packet_5_pack_url", "")),
-        ("done-for-you week ($3000)", getattr(settings, "weekly_sprint_url", "")),
-        ("done-for-you month ($7500)", getattr(settings, "monthly_autopilot_url", "")),
-    ]:
-        if url and url not in seen:
-            offers.append((label, url))
-            seen.add(url)
-    offer_block = "\n\n".join(f"{label}:\n{url}" for label, url in offers)
     return _clean_reply_text(
-        "totally - pick whichever is the best fit\n\n"
-        f"{offer_block}\n\n"
-        "after checkout, intake opens automatically"
+        "totally - keep it simple\n\n"
+        "reply with one rough call note. i will send the follow-up email preview first.\n\n"
+        f"if the preview helps, i will include the {entry_price_label()} Stripe link with it."
     )
 
 def _auto_reply_text(reply_text: str) -> tuple[str, str | None]:
