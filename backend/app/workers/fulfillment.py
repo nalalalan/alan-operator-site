@@ -41,6 +41,7 @@ FIELD_TO_HEADER = {
     "Client or company name": "client_name",
     "What should this focus on?": "focus",
     "Preferred tone for the follow-up email": "tone",
+    "Paste your rough follow-up draft or bullets": "raw_notes",
     "Paste your rough client call notes": "raw_notes",
 }
 
@@ -148,7 +149,8 @@ def _extract_client_fields(payload: dict[str, Any]) -> dict[str, str]:
         "client_name": clean_agency_name(fields.get("Client or company name", "")),
         "focus": fields.get("What should this focus on?", "").strip(),
         "tone": fields.get("Preferred tone for the follow-up email", "").strip(),
-        "raw_notes": fields.get("Paste your rough client call notes", "").strip(),
+        "raw_notes": fields.get("Paste your rough follow-up draft or bullets", "").strip()
+        or fields.get("Paste your rough client call notes", "").strip(),
     }
 
 
@@ -168,8 +170,8 @@ def _guardrail_email(fields: dict[str, str], gate: ClientGateResult) -> tuple[st
         subject = "I could not generate a follow-up email from that submission"
         body = (
             "I received the submission, but I could not generate a normal business follow-up email from the text that was provided.\n\n"
-            "The notes appear to contain personal safety or self-harm language instead of usable business call details.\n\n"
-            "If this was a mistake or a test, resend the form with the actual business call notes or transcript.\n\n"
+            "The text appears to contain personal safety or self-harm language instead of usable business follow-up details.\n\n"
+            "If this was a mistake or a test, resend the form with the actual business follow-up draft, bullets, or transcript.\n\n"
             "If the text reflects an urgent real-world safety concern, contact local emergency services or an appropriate crisis resource immediately.\n\n"
             "No follow-up email was generated.\n\n"
             "- RelayBrief"
@@ -178,8 +180,8 @@ def _guardrail_email(fields: dict[str, str], gate: ClientGateResult) -> tuple[st
 
     subject = "Need more detail before I can write the follow-up email"
     body = (
-        f"I received the submission for {client_name}, but there was not enough usable business call detail to write a real follow-up email.\n\n"
-        "Please resend with the actual call notes or transcript, plus any known decision, next step, or requested follow-up.\n\n"
+        f"I received the submission for {client_name}, but there was not enough usable business detail to write a real follow-up email.\n\n"
+        "Please resend with the actual follow-up draft, bullets, or transcript, plus any known decision, next step, or requested follow-up.\n\n"
         "No follow-up email was generated from the current submission.\n\n"
         "- RelayBrief"
     )
@@ -260,7 +262,7 @@ Following up on our call
 Email body
 Hi,
 
-Thanks for the conversation. Based on the call notes, the main follow-up is {focus}. The next move is to confirm the useful details while the discussion is still fresh and keep the next action simple.
+Thanks for the conversation. Based on the notes, the main follow-up is {focus}. The next move is to confirm the useful details while the discussion is still fresh and keep the next action simple.
 
 Here is what I have captured:
 - Main priority: {focus}

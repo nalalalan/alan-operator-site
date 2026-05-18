@@ -1076,7 +1076,7 @@ def _sample_email_html(to_email: str) -> str:
       <p>Here is the RelayBrief example output:</p>
       <p><a href="{sample_url}" style="color:#222;font-weight:700">Open the example PDF</a></p>
       <p>
-        RelayBrief turns one rough call note into one client-ready follow-up email.
+        RelayBrief turns one rough follow-up draft into one client-ready follow-up email.
       </p>
       <p>
         If you want the paid version, pay through Stripe:
@@ -1168,8 +1168,8 @@ def _messy_notes_customer_email_html(to_email: str) -> str:
     <div style="font-family:Arial,sans-serif;line-height:1.55;color:#221b17;max-width:620px">
       <p>Got your RelayBrief notes.</p>
       <p>
-         The paid next step is one follow-up email. I turn one messy sales or client call
-         note into a client-ready email and one concrete next step.
+         The paid next step is one follow-up email. I turn one rough follow-up draft
+         or a few bullets into a client-ready email and one concrete next step.
       </p>
       <p>
          <a href="{checkout_url}" style="color:#222;font-weight:700">Pay {price_label} with Stripe</a>

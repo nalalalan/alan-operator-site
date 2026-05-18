@@ -261,10 +261,10 @@ def render_outreach(lead: LeadCandidate, fit_band: str, outreach_angle: str, rec
     company = lead.company_name or "your team"
 
     if fit_band == "high_priority":
-        subject = "follow-up email from rough notes"
+        subject = "cleaner follow-up email"
         body = (
             f"Hi {first_name},\n\n"
-            "If one sales or client call still needs a follow-up email, reply with a few rough bullets.\n\n"
+            "If one sales or client call still needs a follow-up email, reply with a rough draft or a few bullets.\n\n"
             "You can remove names or private details. I will reply with one follow-up email draft you can paste. You do not need to click a link, upload anything, download anything, make an account, share a password, enter a card, or pay before preview. If you use the email, I send the $1 Stripe link with the draft.\n\n"
             "- Alan"
         )
@@ -275,7 +275,7 @@ def render_outreach(lead: LeadCandidate, fit_band: str, outreach_angle: str, rec
         body = (
             f"Hi {first_name},\n\n"
             "RelayBrief may be relevant if one sales or client call still needs a clean follow-up email.\n\n"
-            "You can reply with a few rough bullets from one call and get one email draft first. Remove names or private details if needed. No link click, upload, download, account, card form, or payment before preview.\n\n"
+            "You can reply with a rough follow-up draft or a few bullets and get one email draft first. Remove names or private details if needed. No link click, upload, download, account, card form, or payment before preview.\n\n"
             "If that is not relevant, no need to reply.\n\n"
             "- Alan"
         )
@@ -284,7 +284,7 @@ def render_outreach(lead: LeadCandidate, fit_band: str, outreach_angle: str, rec
     subject = "RelayBrief fit check"
     body = (
         f"Hi {first_name},\n\n"
-        "RelayBrief turns rough notes from one call into one follow-up email. Preview first. Pay only if you use it.\n\n"
+        "RelayBrief turns a rough follow-up draft or a few bullets into one follow-up email. Preview first. Pay only if you use it.\n\n"
         "This only makes sense if post-call follow-up is actually slow or annoying. If not, no need to reply.\n\n"
         "- Alan"
     )

@@ -1008,12 +1008,12 @@ def _public_offer_preflight() -> dict[str, Any]:
         )
         payment_after_fit_copy = (
             (
-                "email one rough call note first" in page_lower
+                "email one rough follow-up draft" in page_lower
+                or "email the draft you would have sent" in page_lower
+                or "rough follow-up draft" in page_lower
+                or "rough draft or a few bullets" in page_lower
                 or "email one note" in page_lower
                 or "email rough note" in page_lower
-                or "email rough notes from one call" in page_lower
-                or "email the rough note from one call" in page_lower
-                or "one rough call note" in page_lower
             )
             and ("$1" in combined_text)
             and ("stripe" in page_lower)
