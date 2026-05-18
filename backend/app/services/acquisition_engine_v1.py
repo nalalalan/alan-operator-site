@@ -265,8 +265,8 @@ def render_outreach(lead: LeadCandidate, fit_band: str, outreach_angle: str, rec
         body = (
             f"Hi {first_name},\n\n"
             "I run RelayBrief at relaybrief.com.\n\n"
-            "It is a $1 one-call follow-up test: rough call notes in; recap, follow-up draft, next steps, open questions, and CRM note out.\n\n"
-            "No download, install, account, or password. Stripe handles checkout. If that is useful, use relaybrief.com. If not, no need to reply.\n\n"
+            "It turns one rough sales or client-call note into a recap, follow-up draft, next steps, open questions, and CRM note.\n\n"
+            "No download, install, account, password, or card form. If you send one rough note, I reply with a short plain-text preview first. The finished packet is $1 only if the preview is useful.\n\n"
             "- Alan"
         )
         return subject, body
@@ -276,8 +276,8 @@ def render_outreach(lead: LeadCandidate, fit_band: str, outreach_angle: str, rec
         body = (
             f"Hi {first_name},\n\n"
             "I run RelayBrief at relaybrief.com.\n\n"
-            "It may be relevant if rough sales or client-call notes are turning into delayed follow-up. The test is $1 for one call through Stripe.\n\n"
-            "No download, install, account, or password. If that is not relevant, no need to reply.\n\n"
+            "It may be relevant if rough sales or client-call notes are turning into delayed follow-up. You can send one rough note and get a short plain-text preview first. The finished packet is $1 only if the preview is useful.\n\n"
+            "No download, install, account, password, or card form. If that is not relevant, no need to reply.\n\n"
             "- Alan"
         )
         return subject, body
@@ -285,7 +285,7 @@ def render_outreach(lead: LeadCandidate, fit_band: str, outreach_angle: str, rec
     subject = "RelayBrief fit check"
     body = (
         f"Hi {first_name},\n\n"
-        "I run RelayBrief at relaybrief.com. It is a $1 one-call follow-up packet from rough call notes.\n\n"
+        "I run RelayBrief at relaybrief.com. It turns one rough call note into a follow-up packet. Preview first; $1 only if useful.\n\n"
         "This only makes sense if post-call follow-up is actually slow or annoying. If not, no need to reply.\n\n"
         "- Alan"
     )

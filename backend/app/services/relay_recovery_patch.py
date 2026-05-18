@@ -41,9 +41,9 @@ RECOVERY_STEP_TEMPLATES = [
         subject="RelayBrief one-call follow-up test",
         body=(
             "Hi - I run RelayBrief at relaybrief.com.\n\n"
-            "It is a {entry_price_label} one-call follow-up test: rough call notes in; recap, follow-up draft, next steps, open questions, and CRM note out.\n\n"
-            "Stripe handles checkout. No app, extension, executable, account, or password.\n\n"
-            "If that is useful, use relaybrief.com. If not, no need to reply.\n\n"
+            "It turns one rough sales or client-call note into a recap, follow-up draft, next steps, open questions, and CRM note.\n\n"
+            "No app, extension, executable, account, password, or card form. If you send one rough note, I reply with a short plain-text preview first. The finished packet is {entry_price_label} only if the preview is useful.\n\n"
+            "If that is not relevant, no need to reply.\n\n"
             "- Alan"
         ),
         delay_after_prev_days=0,
@@ -54,7 +54,7 @@ RECOVERY_STEP_TEMPLATES = [
         body=(
             "Following up once with the example output:\n"
             "{sample_url}\n\n"
-            "The test is one call for {entry_price_label} through Stripe. No software download, account, or password.\n\n"
+            "The test is one call by email: send one rough note, get a short preview first, pay {entry_price_label} only if useful. No software download, account, password, or card form.\n\n"
             "- Alan"
         ),
         delay_after_prev_days=1,
@@ -64,8 +64,7 @@ RECOVERY_STEP_TEMPLATES = [
         subject="re: RelayBrief one-call follow-up test",
         body=(
             "Last note from me.\n\n"
-            "If one call is worth testing, checkout is here:\n"
-            "{packet_checkout_url}\n\n"
+            "If one call is worth testing, send one rough note through relaybrief.com. I will preview it before any payment.\n\n"
             "If not, no need to reply.\n\n"
             "- Alan"
         ),

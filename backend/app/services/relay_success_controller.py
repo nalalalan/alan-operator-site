@@ -969,8 +969,12 @@ def _public_offer_preflight() -> dict[str, Any]:
         primary_money_path = (
             'data-primary-money-path="checkout-first"' in page_text
             or 'data-primary-money-path="email-first-payment-after-fit"' in page_text
+            or 'data-primary-money-path="free-preview-payment-after-fit"' in page_text
         )
-        email_first_money_path = 'data-primary-money-path="email-first-payment-after-fit"' in page_text
+        email_first_money_path = (
+            'data-primary-money-path="email-first-payment-after-fit"' in page_text
+            or 'data-primary-money-path="free-preview-payment-after-fit"' in page_text
+        )
         paid_intake_path = "client-intake.html" in combined_text
         paid_intake_copy = (
             ("payment email gives" in page_lower or "stripe receipt gives" in page_lower)
@@ -987,10 +991,16 @@ def _public_offer_preflight() -> dict[str, Any]:
             and ("after checkout" in page_lower or paid_intake_copy)
         )
         payment_after_fit_copy = (
-            ("email one rough call note first" in page_lower or "email one note" in page_lower)
+            ("email one rough call note first" in page_lower or "email one note" in page_lower or "email rough note" in page_lower)
             and ("$1" in combined_text)
             and ("stripe" in page_lower)
-            and ("after alan accepts" in page_lower or "after acceptance" in page_lower or "after the job is accepted" in page_lower)
+            and (
+                "after alan accepts" in page_lower
+                or "after acceptance" in page_lower
+                or "after the job is accepted" in page_lower
+                or "after preview" in page_lower
+                or "only if you want the finished packet" in page_lower
+            )
             and ("no card details on this site" in page_lower or "no card form" in page_lower)
         )
         money_path_copy = checkout_first_copy or payment_after_fit_copy

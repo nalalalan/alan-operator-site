@@ -368,8 +368,8 @@ def _build_initial_body(prospect: BuyerAcquisitionProspect) -> str:
     return (
         f"{greeting}\n\n"
         "I run RelayBrief at relaybrief.com.\n\n"
-        "It is a $1 one-call follow-up test: rough call notes in; recap, follow-up draft, next steps, open questions, and CRM note out.\n\n"
-        "No download, install, account, or password. Stripe handles checkout. If that is useful, use relaybrief.com. If not, no need to reply.\n\n"
+        "It turns one rough sales or client-call note into a recap, follow-up draft, next steps, open questions, and CRM note.\n\n"
+        "No download, install, account, password, or card form. If you send one rough note, I reply with a short plain-text preview first. The finished packet is $1 only if the preview is useful.\n\n"
         "- Alan"
     )
 

@@ -238,7 +238,7 @@ def render_buyer_reply(
             f"The main friction is {friction}.\n\n"
             "Here is an example output:\n\n"
             f"{sample_text}\n\n"
-            "If this looks right, use the $1 checkout at relaybrief.com or reply with one recent call note.\n\n"
+            "If this looks right, reply with one recent call note. I will send a short plain-text preview first. The finished packet is $1 only if the preview is useful.\n\n"
             "- Alan"
         )
         html_body = (
@@ -248,7 +248,7 @@ def render_buyer_reply(
             f"<p>The main friction is {escape(friction)}.</p>"
             "<p>Here is an example output:</p>"
             f"<p>{sample_html}</p>"
-            "<p>If this looks right, use the $1 checkout at relaybrief.com or reply with one recent call note.</p>"
+            "<p>If this looks right, reply with one recent call note. I will send a short plain-text preview first. The finished packet is $1 only if the preview is useful.</p>"
             "<p>- Alan</p>"
         )
         return subject, text_body, html_body
@@ -263,7 +263,7 @@ def render_buyer_reply(
             "CRM-ready updates, and proposal direction after real sales calls.\n\n"
             "Here is an example output:\n\n"
             f"{sample_text}\n\n"
-            "If that is still the workflow you want, reply with one recent real call note and I will tell you whether the $1 packet makes sense.\n\n"
+            "If that is still the workflow you want, reply with one recent real call note and I will send a short plain-text preview before any payment.\n\n"
             "- Alan"
         )
         html_body = (
@@ -274,7 +274,7 @@ def render_buyer_reply(
             "CRM-ready updates, and proposal direction after real sales calls.</p>"
             "<p>Here is an example output:</p>"
             f"<p>{sample_html}</p>"
-            "<p>If that is still the workflow you want, reply with one recent real call note and I will tell you whether the $1 packet makes sense.</p>"
+            "<p>If that is still the workflow you want, reply with one recent real call note and I will send a short plain-text preview before any payment.</p>"
             "<p>- Alan</p>"
         )
         return subject, text_body, html_body
@@ -288,7 +288,7 @@ def render_buyer_reply(
         "and a need for follow-up material that moves the deal forward.\n\n"
         "Here is an example output:\n\n"
         f"{sample_text}\n\n"
-        "Reply with one recent real sales-call note and I can tell you whether the $1 packet makes sense.\n\n"
+        "Reply with one recent real sales-call note and I can send a short plain-text preview before any payment.\n\n"
         "- Alan"
     )
     html_body = (
@@ -299,7 +299,7 @@ def render_buyer_reply(
         "and a need for follow-up material that moves the deal forward.</p>"
         "<p>Here is an example output:</p>"
         f"<p>{sample_html}</p>"
-        "<p>Reply with one recent real sales-call note and I can tell you whether the $1 packet makes sense.</p>"
+        "<p>Reply with one recent real sales-call note and I can send a short plain-text preview before any payment.</p>"
         "<p>- Alan</p>"
     )
     return subject, text_body, html_body
@@ -307,7 +307,7 @@ def render_buyer_reply(
 
 def next_action_for_route(route: str) -> str:
     if route == "pilot_path":
-        return "Send the $1 checkout and ask for one recent call note."
+        return "Ask for one recent call note and send a plain-text preview before payment."
     if route == "clarify_path":
         return "Ask for one recent real call note before recommending the packet."
     return "Ask for a concrete sales-call note or soft-disqualify."
