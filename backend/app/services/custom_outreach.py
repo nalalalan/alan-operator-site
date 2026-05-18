@@ -230,7 +230,7 @@ STEP_TEMPLATE_VARIANTS: dict[str, list[StepTemplate]] = {
             body=(
                 "Following up once.\n\n"
                 "The test is intentionally small: one real call, follow-up email preview first, payment only if useful.\n\n"
-                "No download, account, password, or card form on the site.\n\n"
+                "No link click, upload, download, account, password, card form, or payment before preview.\n\n"
                 "- Alan"
             ),
             delay_after_prev_days=1,
@@ -241,7 +241,7 @@ STEP_TEMPLATE_VARIANTS: dict[str, list[StepTemplate]] = {
             body=(
                 "Last note from me.\n\n"
                 "If this is not relevant, no worries - I will not keep chasing.\n\n"
-                "If it is relevant later, send one rough note through relaybrief.com. I will reply with a short preview before any payment.\n\n"
+                "If it is relevant later, reply with one rough note. I will send a short preview before any payment.\n\n"
                 "Sample:\n"
                 "{sample_url}\n\n"
                 "- Alan"
@@ -317,7 +317,7 @@ STEP_TEMPLATE_VARIANTS: dict[str, list[StepTemplate]] = {
             body=(
                 "Last note from me.\n\n"
                 "If every follow-up is already fast, ignore this.\n\n"
-                "If one opportunity still needs a follow-up because the notes are not cleaned up, send one rough note through relaybrief.com. I will preview it before any payment.\n\n"
+                "If one opportunity still needs a follow-up because the notes are not cleaned up, reply with one rough note. I will preview it before any payment.\n\n"
                 "- Alan"
             ),
             delay_after_prev_days=2,
@@ -369,8 +369,8 @@ TRUST_FIRST_STEP_TEMPLATES: list[StepTemplate] = [
         step_number=1,
         subject="follow-up email from rough notes",
         body=(
-            "Hi - if you have one sales or client call that still needs a follow-up email, send the rough notes.\n\n"
-            "I will reply with one clean email preview you can paste. No download, install, account, password, card form, or payment before preview. If you use the email, I send the {entry_price_label} Stripe link with it.\n\n"
+            "Hi - if you have one sales or client call that still needs a follow-up email, reply with the rough notes.\n\n"
+            "I will reply with one sendable email preview you can paste. You do not need to click a link, upload anything, download anything, make an account, share a password, or enter a card before preview. If you use the email, I send the {entry_price_label} Stripe link with it.\n\n"
             "If that is not relevant, no need to reply.\n\n"
             "- Alan"
         ),
@@ -381,7 +381,7 @@ TRUST_FIRST_STEP_TEMPLATES: list[StepTemplate] = [
         subject="re: one follow-up email",
         body=(
             "Following up once.\n\n"
-            "RelayBrief is one-call email cleanup: no download, account, password, or card form on the site.\n\n"
+            "RelayBrief is one-call email cleanup: no link click, upload, download, account, password, card form, or payment before preview.\n\n"
             "Example output:\n"
             "{sample_url}\n\n"
             "If you send one rough note, I reply with a short follow-up email preview first. No payment before preview.\n\n"
@@ -395,8 +395,8 @@ TRUST_FIRST_STEP_TEMPLATES: list[StepTemplate] = [
         subject="re: one follow-up email",
         body=(
             "Last note from me.\n\n"
-            "If it is useful later, send one rough call note through relaybrief.com. I will reply with a short follow-up email preview before any payment.\n\n"
-            "No download, install, account, password, or card form.\n\n"
+            "If it is useful later, reply with one rough call note. I will send one sendable email preview before any payment.\n\n"
+            "No link click, upload, download, account, password, card form, or payment before preview.\n\n"
             "- Alan"
         ),
         delay_after_prev_days=2,

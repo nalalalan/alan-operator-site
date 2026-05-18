@@ -894,6 +894,7 @@ def _active_outbound_preflight() -> dict[str, Any]:
                             "short plain-text preview" in body.lower()
                             or "short follow-up email preview" in body.lower()
                             or "one clean email preview" in body.lower()
+                            or "one sendable email preview" in body.lower()
                             or "one follow-up email" in body.lower()
                         )
                         and (
@@ -903,7 +904,10 @@ def _active_outbound_preflight() -> dict[str, Any]:
                             or "only if it helps" in body.lower()
                             or "if you use the email" in body.lower()
                         )
-                        and "card form" in body.lower()
+                        and (
+                            "card form" in body.lower()
+                            or "enter a card" in body.lower()
+                        )
                     ),
                 }
             )

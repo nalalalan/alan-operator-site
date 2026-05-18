@@ -264,8 +264,8 @@ def render_outreach(lead: LeadCandidate, fit_band: str, outreach_angle: str, rec
         subject = "follow-up email from rough notes"
         body = (
             f"Hi {first_name},\n\n"
-            "If you have one sales or client call that still needs a follow-up email, send the rough notes.\n\n"
-            "I will reply with one clean email preview you can paste. No download, install, account, password, card form, or payment before preview. If you use the email, I send the $1 Stripe link with it.\n\n"
+            "If you have one sales or client call that still needs a follow-up email, reply with the rough notes.\n\n"
+            "I will reply with one sendable email preview you can paste. You do not need to click a link, upload anything, download anything, make an account, share a password, or enter a card before preview. If you use the email, I send the $1 Stripe link with it.\n\n"
             "- Alan"
         )
         return subject, body
@@ -275,8 +275,8 @@ def render_outreach(lead: LeadCandidate, fit_band: str, outreach_angle: str, rec
         body = (
             f"Hi {first_name},\n\n"
             "RelayBrief may be relevant if one sales or client call still needs a clean follow-up email.\n\n"
-            "You can reply with rough notes from one call and get one email preview first. No payment before preview.\n\n"
-            "No download, install, account, password, or card form. If that is not relevant, no need to reply.\n\n"
+            "You can reply with rough notes from one call and get one email preview first. No link click, upload, download, account, card form, or payment before preview.\n\n"
+            "If that is not relevant, no need to reply.\n\n"
             "- Alan"
         )
         return subject, body
