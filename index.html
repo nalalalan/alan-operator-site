@@ -1635,6 +1635,7 @@
       </a>
     </div>
     <div class="suite-topbar-actions" aria-label="relay actions">
+      <a class="paper-button" href="https://relaybrief.com/" data-event="relay_product_link_click">product</a>
       <span class="status"><span id="liveDot" class="dot"></span><span id="statusText">loading</span></span>
     </div>
   </header>
@@ -2784,9 +2785,9 @@
         var paid = payments > 0 || gross > 0;
         var checkoutReady = Boolean(ladder.entry_offer_ready || entryPrice > 0);
         var productLive = checkoutReady && Number(acquisition.relay_public_offer_smoke_test || 0) > 0;
-        var payFirstLive = productLive && publicOffer.contains_checkout_action && publicOffer.contains_checkout_url && publicOffer.contains_price && (publicOffer.contains_pay_first_copy !== false);
-        var primaryMoneyPathLive = payFirstLive && publicOffer.contains_primary_money_path === true;
-        var notesFallbackLive = Boolean((publicOffer.contains_send_notes_anchor !== false) && publicOffer.contains_notes_form && publicOffer.contains_lead_api);
+        var checkoutLive = productLive && publicOffer.contains_checkout_action && publicOffer.contains_checkout_url && publicOffer.contains_price;
+        var emailFirstLive = productLive && publicOffer.contains_email_first_money_path === true && publicOffer.contains_payment_after_fit_copy === true && publicOffer.contains_money_path_copy === true;
+        var primaryMoneyPathLive = emailFirstLive || (checkoutLive && publicOffer.contains_primary_money_path === true);
         var telemetryLive = views > 0 && systemEvents > 0;
         var sampleDone = parts && parts.target && parts.current >= parts.target;
         var inspectionDone = sampleOpens > 0 || actionTotal(evidence, 365) > 0;
@@ -2819,9 +2820,8 @@
         var gates = [
           { label: money(entryPrice || 1) + " checkout configured", done: checkoutReady },
           { label: "product route checked", done: productLive },
-          { label: "checkout-first page live", done: payFirstLive },
-          { label: "single checkout path", done: primaryMoneyPathLive },
-          { label: "notes fallback live", done: notesFallbackLive },
+          { label: "email-first offer live", done: emailFirstLive },
+          { label: "payment after acceptance", done: primaryMoneyPathLive },
           { label: "telemetry recording", done: telemetryLive },
           { label: progress + " sample sent", done: Boolean(sampleDone) },
           { label: fmt(sampleOpens) + " sample opens", done: inspectionDone },
@@ -2862,12 +2862,12 @@
         var nextDollarNote = paid
           ? fmt(payments) + " payment"
           : "required for first revenue";
-        var offerState = primaryMoneyPathLive ? "live" : (payFirstLive ? "live" : "needs repair");
+        var offerState = primaryMoneyPathLive ? "live" : (checkoutLive ? "live" : "needs repair");
         var moneyLine = paid
           ? "Paid checkout exists. Keep the paid path."
           : (offerState === "needs repair"
-              ? "No revenue yet. Checkout needs repair before money is possible."
-              : "No revenue yet. Payment path is live. First money requires one buyer to pay.");
+              ? "No revenue yet. The money path needs repair before money is possible."
+              : "No revenue yet. The lower-friction money path is live. First money requires one buyer to pay.");
         return (
           '<table class="money-ledger"><tbody>' +
             moneyLedgerRow("revenue", money(gross), "real payments only") +
@@ -3169,8 +3169,9 @@
         var summaryEntryPrice = Number((((success || {}).revenue_objective || {}).entry_test_price_usd) || ((moneySystem.revenue_objective || {}).entry_test_price_usd) || ((relayMoney || {}).entry_test_price_usd) || 1);
         var summaryPublicOffer = success.public_offer_preflight || {};
         var summaryProductLive = summaryEntryPrice > 0 && Number(launchSystem.relay_public_offer_smoke_test || 0) > 0;
-        var summaryPayFirstLive = summaryProductLive && summaryPublicOffer.contains_checkout_action && summaryPublicOffer.contains_checkout_url && summaryPublicOffer.contains_price && (summaryPublicOffer.contains_pay_first_copy !== false);
-        var summaryFirstMoneyPathLive = summaryPayFirstLive && summaryPublicOffer.contains_primary_money_path === true;
+        var summaryEmailFirstLive = summaryProductLive && summaryPublicOffer.contains_email_first_money_path === true && summaryPublicOffer.contains_payment_after_fit_copy === true && summaryPublicOffer.contains_money_path_copy === true;
+        var summaryCheckoutLive = summaryProductLive && summaryPublicOffer.contains_checkout_action && summaryPublicOffer.contains_checkout_url && summaryPublicOffer.contains_price;
+        var summaryFirstMoneyPathLive = summaryEmailFirstLive || (summaryCheckoutLive && summaryPublicOffer.contains_primary_money_path === true);
         var viewsToday = rolling(evidence, "page_view", 1);
         var viewsBaseline = 0;
         var viewSignal = (positive.signals || []).find(function (signal) {
