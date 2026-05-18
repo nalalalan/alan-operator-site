@@ -1076,7 +1076,7 @@ def _sample_email_html(to_email: str) -> str:
       <p>Here is the RelayBrief example output:</p>
       <p><a href="{sample_url}" style="color:#222;font-weight:700">Open the example PDF</a></p>
       <p>
-        RelayBrief turns one stalled lead, last reply, or rough follow-up draft into one follow-up email meant to get a yes, no, or next step.
+        RelayBrief turns one stuck lead, last reply, or rough follow-up draft into one follow-up email meant to get a yes, no, or next step.
       </p>
       <p>
         If you want the paid version, pay through Stripe:
@@ -1168,7 +1168,7 @@ def _messy_notes_customer_email_html(to_email: str) -> str:
     <div style="font-family:Arial,sans-serif;line-height:1.55;color:#221b17;max-width:620px">
       <p>Got your RelayBrief notes.</p>
       <p>
-         The paid next step is one follow-up email. I turn one stalled lead,
+         The paid next step is one follow-up email. I turn one stuck lead,
          last reply, rough draft, or a few bullets into an email meant to get a yes, no, or next step.
       </p>
       <p>

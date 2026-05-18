@@ -359,7 +359,7 @@ def import_source_records(
 
 
 def _build_initial_subject(prospect: BuyerAcquisitionProspect) -> str:
-    return "stalled lead follow-up"
+    return "stuck lead follow-up"
 
 
 def _build_initial_body(prospect: BuyerAcquisitionProspect) -> str:
@@ -469,7 +469,7 @@ def classify_reply_text(reply_text: str) -> str:
 def _build_positive_reply_body(prospect: BuyerAcquisitionProspect) -> str:
     return (
         "Great.\n\n"
-        "Reply with one stalled lead, last reply, rough follow-up draft, or a few bullets. Remove names or private details if needed. I will send one follow-up email draft first.\n\n"
+        "Reply with one stuck lead, last reply, rough follow-up draft, or a few bullets. Remove names or private details if needed. I will send one follow-up email draft first.\n\n"
         f"If you use the email, I will include the {entry_price_label()} Stripe link with the draft.\n\n"
         "No link click, upload, download, account, card, password, or payment before preview. The email comes back by email.\n\n"
         "- Alan"

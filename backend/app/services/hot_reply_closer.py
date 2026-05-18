@@ -61,7 +61,7 @@ def build_hot_reply_decision(text: str) -> HotReplyDecision:
             reply_text=(
                 "happy to keep this simple\n\n"
                 f"{_ladder_block()}\n\n"
-                "send one stalled lead first and i will reply with the preview before any payment"
+                "send one stuck lead first and i will reply with the preview before any payment"
             ),
             summary="call request / high intent",
         )
@@ -91,7 +91,7 @@ def build_hot_reply_decision(text: str) -> HotReplyDecision:
             reply_text=(
                 "totally - pick whichever is the best fit\n\n"
                 f"{_ladder_block()}\n\n"
-                "send one stalled lead first; i will include the payment link only with a useful preview"
+                "send one stuck lead first; i will include the payment link only with a useful preview"
             ),
             summary="pricing question",
         )
@@ -105,7 +105,7 @@ def build_hot_reply_decision(text: str) -> HotReplyDecision:
             should_stop_sequence=True,
             reply_text=(
                 f"totally fair\n\nsite + sample:\n{settings.landing_page_url}\n\n"
-                "send one stalled lead first. i will reply with the preview before any payment."
+                "send one stuck lead first. i will reply with the preview before any payment."
             ),
             summary="trust / scope objection",
         )
@@ -119,7 +119,7 @@ def build_hot_reply_decision(text: str) -> HotReplyDecision:
             should_stop_sequence=True,
             reply_text=(
                 "makes sense\n\n"
-                "lowest-friction option is one stalled lead. send the last reply or rough draft first; i will reply with the preview before any payment."
+                "lowest-friction option is one stuck lead. send the last reply or rough draft first; i will reply with the preview before any payment."
             ),
             summary="timing objection",
         )

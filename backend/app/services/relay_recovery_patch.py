@@ -38,7 +38,7 @@ GENERIC_INBOX_LOCAL_PARTS = {
 RECOVERY_STEP_TEMPLATES = [
     StepTemplate(
         step_number=1,
-        subject="stalled lead follow-up",
+        subject="stuck lead follow-up",
         body=(
             "Hi - if one sales or client call still needs a follow-up email, reply with a few rough bullets.\n\n"
             "You can remove names or private details. I will reply with one follow-up email draft you can paste. You do not need to click a link, upload anything, download anything, make an account, share a password, enter a card, or pay before preview. If you use the email, I send the {entry_price_label} Stripe link with the draft.\n\n"
@@ -53,7 +53,7 @@ RECOVERY_STEP_TEMPLATES = [
         body=(
             "Following up once with the example output:\n"
             "{sample_url}\n\n"
-            "The test is one stalled lead by email: send the last reply or rough draft, get a short follow-up email preview first. No payment before preview. No software download, account, password, or card form.\n\n"
+            "The test is one stuck lead by email: send the last reply or rough draft, get a short follow-up email preview first. No payment before preview. No software download, account, password, or card form.\n\n"
             "- Alan"
         ),
         delay_after_prev_days=1,
@@ -63,7 +63,7 @@ RECOVERY_STEP_TEMPLATES = [
         subject="re: one follow-up email",
         body=(
             "Last note from me.\n\n"
-            "If one stalled lead is worth testing, reply with the last reply or rough draft. I will send a follow-up email preview before any payment.\n\n"
+            "If one stuck lead is worth testing, reply with the last reply or rough draft. I will send a follow-up email preview before any payment.\n\n"
             "If not, no need to reply.\n\n"
             "- Alan"
         ),

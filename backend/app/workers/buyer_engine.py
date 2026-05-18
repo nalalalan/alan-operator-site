@@ -14,7 +14,7 @@ def draft_buyer_engine_row(buyer: BuyerRequestIn) -> dict:
 
     first_message = (
         "Saw that your team is handling sales calls and the post-call follow-up still carries founder/admin drag. "
-        "RelayBrief turns one stalled lead, last reply, or rough draft into one follow-up email meant to get a yes, no, or next step."
+        "RelayBrief turns one stuck lead, last reply, or rough draft into one follow-up email meant to get a yes, no, or next step."
     )
 
     return {

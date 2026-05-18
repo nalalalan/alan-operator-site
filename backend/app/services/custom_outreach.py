@@ -60,7 +60,7 @@ LEGACY_STEP_TEMPLATES: list[StepTemplate] = [
             "Just following up once.\n\n"
             "This is the kind of output I mean:\n"
             "{landing_page_url}\n\n"
-            "It is not software to set up. You send one stalled lead, last reply, rough draft, or a few bullets, and you get back one follow-up email meant to get a yes, no, or next step.\n\n"
+            "It is not software to set up. You send one stuck lead, last reply, rough draft, or a few bullets, and you get back one follow-up email meant to get a yes, no, or next step.\n\n"
             "Would that be useful on one real call?\n\n"
             "- Alan"
         ),
@@ -101,7 +101,7 @@ STEP_TEMPLATES = [
             "Following up once with the concrete version.\n\n"
             "Example output:\n"
             "{sample_url}\n\n"
-            "The use case is simple: send one stalled lead, last reply, rough draft, or a few bullets and get back one follow-up email meant to get a yes, no, or next step.\n\n"
+            "The use case is simple: send one stuck lead, last reply, rough draft, or a few bullets and get back one follow-up email meant to get a yes, no, or next step.\n\n"
             "If you have one messy call from this week, I can turn it around as a {entry_price_label} test.\n\n"
             "- Alan"
         ),
@@ -133,7 +133,7 @@ STEP_TEMPLATE_VARIANTS: dict[str, list[StepTemplate]] = {
             subject="after-call follow-up",
             body=(
                 "Hey - quick question.\n\n"
-                "I run RelayBrief to turn one stalled lead, last reply, or rough draft into one follow-up email meant to get a yes, no, or next step.\n\n"
+                "I run RelayBrief to turn one stuck lead, last reply, or rough draft into one follow-up email meant to get a yes, no, or next step.\n\n"
                 "Here is the example output:\n"
                 "{sample_url}\n\n"
                 "If there is one messy follow-up from this week, worth testing the {entry_price_label} version?\n\n"
@@ -147,7 +147,7 @@ STEP_TEMPLATE_VARIANTS: dict[str, list[StepTemplate]] = {
             body=(
                 "Following up once.\n\n"
                 "The useful part is not more software. It is getting the post-call cleanup finished when the team is busy.\n\n"
-                "If you send one stalled lead, last reply, or rough draft, Relay sends back one follow-up email meant to get a yes, no, or next step.\n\n"
+                "If you send one stuck lead, last reply, or rough draft, Relay sends back one follow-up email meant to get a yes, no, or next step.\n\n"
                 "Sample:\n"
                 "{sample_url}\n\n"
                 "- Alan"
@@ -214,7 +214,7 @@ STEP_TEMPLATE_VARIANTS: dict[str, list[StepTemplate]] = {
             subject="one-call cleanup test",
             body=(
                 "Hey - quick question.\n\n"
-                "I am testing a {entry_price_label} done-for-you Relay: send one stalled lead, last reply, or rough draft, get back one follow-up email meant to get a yes, no, or next step.\n\n"
+                "I am testing a {entry_price_label} done-for-you Relay: send one stuck lead, last reply, or rough draft, get back one follow-up email meant to get a yes, no, or next step.\n\n"
                 "Sample:\n"
                 "{sample_url}\n\n"
                 "Send a rough draft or a few bullets first:\n"
@@ -367,7 +367,7 @@ STEP_TEMPLATE_VARIANTS: dict[str, list[StepTemplate]] = {
 TRUST_FIRST_STEP_TEMPLATES: list[StepTemplate] = [
     StepTemplate(
         step_number=1,
-        subject="stalled lead follow-up",
+        subject="stuck lead follow-up",
         body=(
             "Hi - if one prospect, client, or lead has gone quiet, reply with the last reply, a rough draft, or a few bullets.\n\n"
             "You can remove names or private details. I will reply with one follow-up email meant to get a yes, no, or next step. You do not need to click a link, upload anything, download anything, make an account, share a password, enter a card, or pay before preview. If you use the email, I send the {entry_price_label} Stripe link with the draft.\n\n"
@@ -378,13 +378,13 @@ TRUST_FIRST_STEP_TEMPLATES: list[StepTemplate] = [
     ),
     StepTemplate(
         step_number=2,
-        subject="re: stalled lead follow-up",
+        subject="re: stuck lead follow-up",
         body=(
             "Following up once.\n\n"
-            "RelayBrief is a manual stalled-lead follow-up by email: send the last reply, a rough draft, or a few bullets, remove private details if needed, and get a draft before payment.\n\n"
+            "RelayBrief is a manual stuck-lead follow-up by email: send the last reply, a rough draft, or a few bullets, remove private details if needed, and get a draft before payment.\n\n"
             "Example output:\n"
             "{sample_url}\n\n"
-            "If you send one stalled lead, I reply with a short follow-up email draft first. No payment before preview.\n\n"
+            "If you send one stuck lead, I reply with a short follow-up email draft first. No payment before preview.\n\n"
             "If not, no need to reply.\n\n"
             "- Alan"
         ),
@@ -392,10 +392,10 @@ TRUST_FIRST_STEP_TEMPLATES: list[StepTemplate] = [
     ),
     StepTemplate(
         step_number=3,
-        subject="re: stalled lead follow-up",
+        subject="re: stuck lead follow-up",
         body=(
             "Last note from me.\n\n"
-            "If it is useful later, reply with one stalled lead, last reply, or rough follow-up draft. I will send one follow-up email draft before any payment.\n\n"
+            "If it is useful later, reply with one stuck lead, last reply, or rough follow-up draft. I will send one follow-up email draft before any payment.\n\n"
             "No link click, upload, download, account, password, card form, or payment before preview.\n\n"
             "- Alan"
         ),

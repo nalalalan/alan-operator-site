@@ -261,7 +261,7 @@ def render_outreach(lead: LeadCandidate, fit_band: str, outreach_angle: str, rec
     company = lead.company_name or "your team"
 
     if fit_band == "high_priority":
-        subject = "stalled lead follow-up"
+        subject = "stuck lead follow-up"
         body = (
             f"Hi {first_name},\n\n"
             "If one prospect, client, or lead has gone quiet, reply with the last reply, a rough draft, or a few bullets.\n\n"
@@ -284,7 +284,7 @@ def render_outreach(lead: LeadCandidate, fit_band: str, outreach_angle: str, rec
     subject = "RelayBrief fit check"
     body = (
         f"Hi {first_name},\n\n"
-        "RelayBrief turns one stalled lead, last reply, or rough draft into one follow-up email. Preview first. Pay only if you use it.\n\n"
+        "RelayBrief turns one stuck lead, last reply, or rough draft into one follow-up email. Preview first. Pay only if you use it.\n\n"
         "This only makes sense if a quiet prospect or client still needs one clear next email. If not, no need to reply.\n\n"
         "- Alan"
     )

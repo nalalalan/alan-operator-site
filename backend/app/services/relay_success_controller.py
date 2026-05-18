@@ -1011,8 +1011,8 @@ def _public_offer_preflight() -> dict[str, Any]:
                 "email one rough follow-up draft" in page_lower
                 or "email the draft you would have sent" in page_lower
                 or "email the last reply" in page_lower
-                or "one stalled lead" in page_lower
-                or "stalled lead" in page_lower
+                or "one stuck lead" in page_lower
+                or "stuck lead" in page_lower
                 or "rough follow-up draft" in page_lower
                 or "rough draft or a few bullets" in page_lower
                 or "email one note" in page_lower
