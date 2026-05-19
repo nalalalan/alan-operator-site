@@ -743,8 +743,8 @@ def _reply_text_has_preview_first_path(reply_text: str) -> bool:
         or "reply with one rough" in text
         or "send one stuck lead" in text
         or "reply with one stuck" in text
-        or "send one unanswered quote" in text
-        or "reply with one unanswered quote" in text
+        or "send one stuck client email" in text
+        or "reply with one stuck client email" in text
     )
     return has_preview_or_payment_boundary and has_accepted_input_path
 
@@ -754,7 +754,9 @@ def _outbound_body_has_preview_first_path(body: str) -> bool:
     has_return_value = (
         "one cleaner email" in text
         or "one follow-up email" in text
+        or "one reply draft" in text
         or "follow-up email preview" in text
+        or "reply draft preview" in text
         or "sendable email" in text
         or "email you can send" in text
         or "email you can paste and send" in text
@@ -765,7 +767,7 @@ def _outbound_body_has_preview_first_path(body: str) -> bool:
         or "rough draft" in text
         or "few bullets" in text
         or "rough follow-up" in text
-        or "unanswered quote" in text
+        or "stuck client email" in text
     )
     has_preview_or_payment_boundary = (
         "before any payment" in text
@@ -797,12 +799,12 @@ def _public_offer_text_has_preview_first_money_path(
     has_accepted_input_path = (
         "email one rough follow-up draft" in page_lower
         or "email the draft you would have sent" in page_lower
-        or "email the last reply" in page_lower
+        or "email the last message" in page_lower
         or "one stuck lead" in page_lower
-        or "one unanswered quote" in page_lower
+        or "one stuck client email" in page_lower
         or "one stuck follow-up" in page_lower
         or "stuck lead" in page_lower
-        or "unanswered quote" in page_lower
+        or "stuck client email" in page_lower
         or "stuck follow-up" in page_lower
         or "rough follow-up draft" in page_lower
         or "rough draft or a few bullets" in page_lower

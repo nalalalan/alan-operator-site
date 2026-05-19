@@ -43,11 +43,11 @@ class SMTPMailbox:
 LEGACY_STEP_TEMPLATES: list[StepTemplate] = [
     StepTemplate(
         step_number=1,
-        subject="unanswered quote follow-up",
+        subject="stuck client email reply",
         body=(
             "Hey -\n\n"
             "After a strong client call, do you ever end up with the recap / next steps / follow-up sitting longer than it should?\n\n"
-            "I am testing a small done-for-you service that takes one unanswered quote, last reply, or rough draft and turns it into a next email.\n\n"
+            "I am testing a small done-for-you service that takes one stuck client email, last message, or rough draft and turns it into a next email.\n\n"
             "Happy to send a sample if that is relevant.\n\n"
             "- Alan"
         ),
@@ -55,12 +55,12 @@ LEGACY_STEP_TEMPLATES: list[StepTemplate] = [
     ),
     StepTemplate(
         step_number=2,
-        subject="re: unanswered quote follow-up",
+        subject="re: stuck client email reply",
         body=(
             "Just following up once.\n\n"
             "This is the kind of output I mean:\n"
             "{landing_page_url}\n\n"
-            "It is not software to set up. You send one unanswered quote, last reply, rough draft, or a few bullets, and you get back one follow-up email meant to get a yes, no, or next step.\n\n"
+            "It is not software to set up. You send one stuck client email, last message, rough draft, or a few bullets, and you get back one reply draft meant to get a yes, no, or next step.\n\n"
             "Would that be useful on one real call?\n\n"
             "- Alan"
         ),
@@ -68,10 +68,10 @@ LEGACY_STEP_TEMPLATES: list[StepTemplate] = [
     ),
     StepTemplate(
         step_number=3,
-        subject="re: unanswered quote follow-up",
+        subject="re: stuck client email reply",
         body=(
             "Last nudge.\n\n"
-            "The easiest way to test it is one unanswered quote first:\n"
+            "The easiest way to test it is one stuck client email first:\n"
             "{notes_url}\n\n"
             "I will preview it before any payment.\n\n"
             "- Alan"
@@ -84,11 +84,11 @@ LEGACY_STEP_TEMPLATES: list[StepTemplate] = [
 STEP_TEMPLATES = [
     StepTemplate(
         step_number=1,
-        subject="unanswered quote follow-up",
+        subject="stuck client email reply",
         body=(
             "Hey - quick question.\n\n"
-            "When a prospect, client, or lead goes quiet, does your team already have someone who turns the last reply into a clear next email?\n\n"
-            "I write one follow-up email for that. No app, extension, account, password, upload, card form, or payment before preview.\n\n"
+            "When a prospect, client, or lead goes quiet, does your team already have someone who turns the last message into a clear next email?\n\n"
+            "I write one reply draft for that. No app, extension, account, password, upload, card form, or payment before preview.\n\n"
             "Worth sending the sample?\n\n"
             "- Alan"
         ),
@@ -96,23 +96,23 @@ STEP_TEMPLATES = [
     ),
     StepTemplate(
         step_number=2,
-        subject="re: unanswered quote follow-up",
+        subject="re: stuck client email reply",
         body=(
             "Following up once with the concrete version.\n\n"
             "Example output:\n"
             "{sample_url}\n\n"
-            "The use case is simple: send one unanswered quote, last reply, rough draft, or a few bullets and get back one follow-up email meant to get a yes, no, or next step.\n\n"
-            "If you have one unanswered quote, last reply, or rough draft from this week, I can turn it around as a {entry_price_label} test.\n\n"
+            "The use case is simple: send one stuck client email, last message, rough draft, or a few bullets and get back one reply draft meant to get a yes, no, or next step.\n\n"
+            "If you have one stuck client email, last message, or rough draft from this week, I can turn it around as a {entry_price_label} test.\n\n"
             "- Alan"
         ),
         delay_after_prev_days=1,
     ),
     StepTemplate(
         step_number=3,
-        subject="re: unanswered quote follow-up",
+        subject="re: stuck client email reply",
         body=(
             "Last note from me.\n\n"
-            "If unanswered quotes are a real bottleneck, the lowest-friction test is one unanswered quote first:\n"
+            "If stuck client emails are a real bottleneck, the lowest-friction test is one stuck client email first:\n"
             "{notes_url}\n\n"
             "I will preview it before any payment.\n\n"
             "More detail is here:\n"
@@ -130,10 +130,10 @@ STEP_TEMPLATE_VARIANTS: dict[str, list[StepTemplate]] = {
     "sample_first_plain": [
         StepTemplate(
             step_number=1,
-            subject="unanswered quote follow-up",
+            subject="stuck client email reply",
             body=(
                 "Hey - quick question.\n\n"
-                "I write one follow-up email from one unanswered quote, last reply, rough draft, or a few bullets.\n\n"
+                "I write one reply draft from one stuck client email, last message, rough draft, or a few bullets.\n\n"
                 "Here is the example output:\n"
                 "{sample_url}\n\n"
                 "If there is one messy follow-up from this week, worth testing the {entry_price_label} version?\n\n"
@@ -143,11 +143,11 @@ STEP_TEMPLATE_VARIANTS: dict[str, list[StepTemplate]] = {
         ),
         StepTemplate(
             step_number=2,
-            subject="re: unanswered quote follow-up",
+            subject="re: stuck client email reply",
             body=(
                 "Following up once.\n\n"
                 "The useful part is not more software. It is getting the follow-up cleanup finished when the team is busy.\n\n"
-                "If you send one unanswered quote, last reply, rough draft, or a few bullets, I send back one follow-up email meant to get a yes, no, or next step.\n\n"
+                "If you send one stuck client email, last message, rough draft, or a few bullets, I send back one reply draft meant to get a yes, no, or next step.\n\n"
                 "Sample:\n"
                 "{sample_url}\n\n"
                 "- Alan"
@@ -156,11 +156,11 @@ STEP_TEMPLATE_VARIANTS: dict[str, list[StepTemplate]] = {
         ),
         StepTemplate(
             step_number=3,
-            subject="re: unanswered quote follow-up",
+            subject="re: stuck client email reply",
             body=(
                 "Last note from me.\n\n"
                 "If follow-up cleanup is not a problem, no worries.\n\n"
-                "If it is, the smallest test is one unanswered quote first:\n"
+                "If it is, the smallest test is one stuck client email first:\n"
                 "{notes_url}\n\n"
                 "I will preview it before any payment.\n\n"
                 "- Alan"
@@ -200,7 +200,7 @@ STEP_TEMPLATE_VARIANTS: dict[str, list[StepTemplate]] = {
             body=(
                 "Last note from me.\n\n"
                 "If follow-up cleanup is not costing time, no worries.\n\n"
-                "If one call is worth testing, send one unanswered quote first:\n"
+                "If one call is worth testing, send one stuck client email first:\n"
                 "{notes_url}\n\n"
                 "I will preview it before any payment.\n\n"
                 "- Alan"
@@ -211,10 +211,10 @@ STEP_TEMPLATE_VARIANTS: dict[str, list[StepTemplate]] = {
     "paid_test_explicit": [
         StepTemplate(
             step_number=1,
-            subject="unanswered quote follow-up",
+            subject="stuck client email reply",
             body=(
                 "Hey - quick question.\n\n"
-                "I am testing a {entry_price_label} manual unanswered quote follow-up: send one unanswered quote, last reply, rough draft, or a few bullets, get back one follow-up email meant to get a yes, no, or next step.\n\n"
+                "I am testing a {entry_price_label} manual stuck client email reply: send one stuck client email, last message, rough draft, or a few bullets, get back one reply draft meant to get a yes, no, or next step.\n\n"
                 "Sample:\n"
                 "{sample_url}\n\n"
                 "Send a rough draft, or a few bullets first:\n"
@@ -226,7 +226,7 @@ STEP_TEMPLATE_VARIANTS: dict[str, list[StepTemplate]] = {
         ),
         StepTemplate(
             step_number=2,
-            subject="re: unanswered quote follow-up",
+            subject="re: stuck client email reply",
             body=(
                 "Following up once.\n\n"
                 "The test is intentionally small: one real call, follow-up email preview first, payment only if useful.\n\n"
@@ -237,11 +237,11 @@ STEP_TEMPLATE_VARIANTS: dict[str, list[StepTemplate]] = {
         ),
         StepTemplate(
             step_number=3,
-            subject="re: unanswered quote follow-up",
+            subject="re: stuck client email reply",
             body=(
                 "Last note from me.\n\n"
                 "If this is not relevant, no worries - I will not keep chasing.\n\n"
-                "If it is relevant later, reply with one unanswered quote. I will send a short preview before any payment.\n\n"
+                "If it is relevant later, reply with one stuck client email. I will send a short preview before any payment.\n\n"
                 "Sample:\n"
                 "{sample_url}\n\n"
                 "- Alan"
@@ -252,11 +252,11 @@ STEP_TEMPLATE_VARIANTS: dict[str, list[StepTemplate]] = {
     "hard_paid_test_direct": [
         StepTemplate(
             step_number=1,
-            subject="unanswered quote follow-up",
+            subject="stuck client email reply",
             body=(
                 "Hey - quick question.\n\n"
-                "If {company_name} has one prospect, client, or lead that has gone quiet, I can turn the last reply or rough draft into one follow-up email.\n\n"
-                "Reply with the last reply first. I will send one follow-up email preview before any payment.\n\n"
+                "If {company_name} has one prospect, client, or lead that has gone quiet, I can turn the last message or rough draft into one follow-up email.\n\n"
+                "Reply with the last message first. I will send one reply draft preview before any payment.\n\n"
                 "Sample format:\n"
                 "{sample_url}\n\n"
                 "- Alan"
@@ -265,18 +265,18 @@ STEP_TEMPLATE_VARIANTS: dict[str, list[StepTemplate]] = {
         ),
         StepTemplate(
             step_number=2,
-            subject="re: unanswered quote follow-up",
+            subject="re: stuck client email reply",
             body=(
                 "Following up once.\n\n"
-                "This is not a software rollout. It is one unanswered quote, last reply, or rough draft turned into a preview first, then a finished follow-up email only if useful.\n\n"
-                "If delayed follow-up is costing time, reply with one unanswered quote.\n\n"
+                "This is not a software rollout. It is one stuck client email, last message, or rough draft turned into a preview first, then a finished follow-up email only if useful.\n\n"
+                "If delayed follow-up is costing time, reply with one stuck client email.\n\n"
                 "- Alan"
             ),
             delay_after_prev_days=1,
         ),
         StepTemplate(
             step_number=3,
-            subject="re: unanswered quote follow-up",
+            subject="re: stuck client email reply",
             body=(
                 "Last note from me.\n\n"
                 "If this is not a real problem, no worries.\n\n"
@@ -294,7 +294,7 @@ STEP_TEMPLATE_VARIANTS: dict[str, list[StepTemplate]] = {
                 "Hey - quick question.\n\n"
             "If {company_name} has one sales call where the next step is still stuck in a rough draft, I can turn it into one follow-up email.\n\n"
                 "This is for one stalled opportunity, not a software rollout.\n\n"
-            "Reply with the last reply first. I will send a short follow-up email preview before any payment.\n\n"
+            "Reply with the last message first. I will send a short follow-up email preview before any payment.\n\n"
                 "- Alan"
             ),
             delay_after_prev_days=0,
@@ -317,7 +317,7 @@ STEP_TEMPLATE_VARIANTS: dict[str, list[StepTemplate]] = {
             body=(
                 "Last note from me.\n\n"
                 "If every follow-up is already fast, ignore this.\n\n"
-            "If one opportunity still needs a follow-up because the draft is not cleaned up, reply with one unanswered quote. I will preview it before any payment.\n\n"
+            "If one opportunity still needs a follow-up because the draft is not cleaned up, reply with one stuck client email. I will preview it before any payment.\n\n"
                 "- Alan"
             ),
             delay_after_prev_days=2,
@@ -354,7 +354,7 @@ STEP_TEMPLATE_VARIANTS: dict[str, list[StepTemplate]] = {
             body=(
                 "Last note from me.\n\n"
                 "If delayed follow-up is not a bottleneck, no worries.\n\n"
-                "If one call is worth cleaning up, send one unanswered quote first:\n"
+                "If one call is worth cleaning up, send one stuck client email first:\n"
                 "{notes_url}\n\n"
                 "I will preview it before any payment.\n\n"
                 "- Alan"
@@ -367,10 +367,10 @@ STEP_TEMPLATE_VARIANTS: dict[str, list[StepTemplate]] = {
 TRUST_FIRST_STEP_TEMPLATES: list[StepTemplate] = [
     StepTemplate(
         step_number=1,
-        subject="unanswered quote follow-up",
+        subject="stuck client email reply",
         body=(
-            "Hi - if one unanswered quote or client thread went quiet, reply with the last reply, rough draft, or a few bullets.\n\n"
-            "You can remove names or private details. I will reply with a subject line and one follow-up email. No link click, upload, download, account, password, card form, or payment before preview. If it helps, I send the {entry_price_label} Stripe link afterward.\n\n"
+            "Hi - if one stuck client email or quiet client thread went quiet, reply with the last message, rough draft, or a few bullets.\n\n"
+            "You can remove names or private details. I will reply with a subject line and one reply draft. No link click, upload, download, account, password, card form, or payment before preview. If it helps, I send the {entry_price_label} Stripe link afterward.\n\n"
             "If that is not relevant, no need to reply.\n\n"
             "- Alan"
         ),
@@ -378,13 +378,13 @@ TRUST_FIRST_STEP_TEMPLATES: list[StepTemplate] = [
     ),
     StepTemplate(
         step_number=2,
-        subject="re: unanswered quote follow-up",
+        subject="re: stuck client email reply",
         body=(
             "Following up once.\n\n"
-            "This is manual unanswered quote follow-up by email: send the last reply, rough draft, or a few bullets, remove private details if needed, and get one follow-up email back before payment.\n\n"
+            "This is manual stuck client email reply by email: send the last message, rough draft, or a few bullets, remove private details if needed, and get one reply draft back before payment.\n\n"
             "Example output:\n"
             "{sample_url}\n\n"
-            "If you send one unanswered quote, I reply with a short preview first. No payment before preview.\n\n"
+            "If you send one stuck client email, I reply with a short preview first. No payment before preview.\n\n"
             "If not, no need to reply.\n\n"
             "- Alan"
         ),
@@ -392,10 +392,10 @@ TRUST_FIRST_STEP_TEMPLATES: list[StepTemplate] = [
     ),
     StepTemplate(
         step_number=3,
-        subject="re: unanswered quote follow-up",
+        subject="re: stuck client email reply",
         body=(
             "Last note from me.\n\n"
-            "If it is useful later, reply with one unanswered quote, last reply, rough draft, or a few bullets. I will send one follow-up email before any payment.\n\n"
+            "If it is useful later, reply with one stuck client email, last message, rough draft, or a few bullets. I will send one reply draft before any payment.\n\n"
             "No link click, upload, download, account, password, card form, or payment before preview.\n\n"
             "- Alan"
         ),

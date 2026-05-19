@@ -38,10 +38,10 @@ GENERIC_INBOX_LOCAL_PARTS = {
 RECOVERY_STEP_TEMPLATES = [
     StepTemplate(
         step_number=1,
-        subject="unanswered quote follow-up",
+        subject="stuck client email reply",
         body=(
-            "Hi - if one unanswered quote or client thread went quiet, reply with the last reply, rough draft, or a few bullets.\n\n"
-            "You can remove names or private details. I will reply with a subject line and one follow-up email. No link click, upload, download, account, password, card form, or payment before preview. If it helps, I send the {entry_price_label} Stripe link afterward.\n\n"
+            "Hi - if one stuck client email or quiet client thread went quiet, reply with the last message, rough draft, or a few bullets.\n\n"
+            "You can remove names or private details. I will reply with a subject line and one reply draft. No link click, upload, download, account, password, card form, or payment before preview. If it helps, I send the {entry_price_label} Stripe link afterward.\n\n"
             "If that is not relevant, no need to reply.\n\n"
             "- Alan"
         ),
@@ -49,21 +49,21 @@ RECOVERY_STEP_TEMPLATES = [
     ),
     StepTemplate(
         step_number=2,
-        subject="re: unanswered quote follow-up",
+        subject="re: stuck client email reply",
         body=(
             "Following up once with the example output:\n"
             "{sample_url}\n\n"
-            "The test is one unanswered quote by email: send the last reply, rough draft, or a few bullets, get one follow-up email first. No payment before preview. No software download, account, password, or card form.\n\n"
+            "The test is one stuck client email by email: send the last message, rough draft, or a few bullets, get one reply draft first. No payment before preview. No software download, account, password, or card form.\n\n"
             "- Alan"
         ),
         delay_after_prev_days=1,
     ),
     StepTemplate(
         step_number=3,
-        subject="re: unanswered quote follow-up",
+        subject="re: stuck client email reply",
         body=(
             "Last note from me.\n\n"
-            "If one unanswered quote is worth testing, reply with the rough draft, last reply, or a few bullets. I will send one follow-up email before any payment.\n\n"
+            "If one stuck client email is worth testing, reply with the rough draft, last reply, or a few bullets. I will send one reply draft before any payment.\n\n"
             "If not, no need to reply.\n\n"
             "- Alan"
         ),

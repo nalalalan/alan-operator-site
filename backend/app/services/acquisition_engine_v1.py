@@ -261,30 +261,30 @@ def render_outreach(lead: LeadCandidate, fit_band: str, outreach_angle: str, rec
     company = lead.company_name or "your team"
 
     if fit_band == "high_priority":
-        subject = "unanswered quote follow-up"
+        subject = "stuck client email reply"
         body = (
             f"Hi {first_name},\n\n"
-            "If you have one unanswered quote or client thread that went quiet, reply with the last reply, rough draft, or a few bullets.\n\n"
-            "You can remove names or private details. I will reply with a subject line and one follow-up email. No link click, upload, download, account, password, card form, or payment before preview. If it helps, I send the $1 Stripe link afterward.\n\n"
+            "If you have one stuck client email or quiet client thread that went quiet, reply with the last message, rough draft, or a few bullets.\n\n"
+            "You can remove names or private details. I will reply with a subject line and one reply draft. No link click, upload, download, account, password, card form, or payment before preview. If it helps, I send the $1 Stripe link afterward.\n\n"
             "- Alan"
         )
         return subject, body
 
     if fit_band == "nurture":
-        subject = "unanswered quote follow-up"
+        subject = "stuck client email reply"
         body = (
             f"Hi {first_name},\n\n"
             "This may be relevant if one lead, quote, or client thread went quiet.\n\n"
-            "You can reply with the last reply, rough draft, or a few bullets and get one follow-up email first. Remove names or private details if needed. No link click, upload, download, account, card form, or payment before preview.\n\n"
+            "You can reply with the last message, rough draft, or a few bullets and get one reply draft first. Remove names or private details if needed. No link click, upload, download, account, card form, or payment before preview.\n\n"
             "If that is not relevant, no need to reply.\n\n"
             "- Alan"
         )
         return subject, body
 
-    subject = "unanswered quote follow-up"
+    subject = "stuck client email reply"
     body = (
         f"Hi {first_name},\n\n"
-        "I turn one unanswered quote, last reply, or rough draft into a subject line and one follow-up email. Preview first. Pay only if it helps.\n\n"
+        "I turn one stuck client email, last message, or rough draft into a subject line and one reply draft. Preview first. Pay only if it helps.\n\n"
         "This only makes sense if there is a real follow-up you already need to send. If not, no need to reply.\n\n"
         "- Alan"
     )
