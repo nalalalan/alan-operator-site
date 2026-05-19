@@ -94,6 +94,20 @@ def test_public_offer_accepts_current_followup_rewrite_preview_path():
     assert _public_offer_text_has_preview_first_money_path(page_text, page_text, "$1")
 
 
+def test_public_offer_accepts_live_stuck_client_email_afterward_copy():
+    page_text = (
+        '<section data-primary-money-path="free-email-preview-payment-after-fit">'
+        "Send one stuck client email. I'll write the reply. "
+        "Paste the last message or your rough draft. Remove private details. "
+        "I send back one short reply. Pay $1 afterward only if you use it. "
+        "Stripe link after the reply. No checkout here. "
+        "No app. No upload. No account. No password. No card form on this site."
+        "</section>"
+    )
+
+    assert _public_offer_text_has_preview_first_money_path(page_text, page_text, "$1")
+
+
 def test_outbound_preflight_accepts_current_email_first_copy():
     body = (
         "Hi - if one stuck client email or quiet client thread went quiet, reply with the last message, rough draft, or a few bullets.\n\n"

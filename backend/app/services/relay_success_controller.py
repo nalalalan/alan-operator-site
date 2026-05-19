@@ -819,9 +819,12 @@ def _public_offer_text_has_preview_first_money_path(
         or "after preview" in page_lower
         or "payment before preview" in page_lower
         or "payment link afterward" in page_lower
+        or "stripe link after the reply" in page_lower
         or "stripe link afterward" in page_lower
         or "only if you want the finished packet" in page_lower
         or "only if it helps" in page_lower
+        or "pay $1 afterward" in page_lower
+        or "pay $1 afterward only if you use it" in page_lower
         or "pay $1 if you use it" in page_lower
         or "pay $1 only if you use it" in page_lower
         or "pay only if you use it" in page_lower
@@ -836,6 +839,7 @@ def _public_offer_text_has_preview_first_money_path(
         or "card form, or payment before preview" in page_lower
         or "card form or payment before preview" in page_lower
         or "card, or payment before preview" in page_lower
+        or "no checkout here" in page_lower
         or "no checkout before preview" in page_lower
     )
     has_price = price_label in combined_text or price_label.lower() in combined_lower
